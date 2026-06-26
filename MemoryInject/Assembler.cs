@@ -1,7 +1,7 @@
 ﻿using System;
 using Binarysharp.Assemblers.Fasm; // Dein gefundener Namespace!
 
-namespace MemoryEngine.Core
+namespace MemoryEngine
 {
     public static class Assembler
     {

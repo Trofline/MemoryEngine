@@ -7,20 +7,28 @@
 	  <TargetFramework>net6.0</TargetFramework>
 	  <ImplicitUsings>enable</ImplicitUsings>
 	  <Nullable>enable</Nullable>
-	  <PlatformTarget>x86</PlatformTarget>
+	  <PlatformTarget>AnyCPU</PlatformTarget>
 
-	  <Version>1.0.1</Version>
+	  <Version>1.0.0</Version>
 	  <Authors>Trofline</Authors>
-	  <Description>x86 Memory Manipulation Engine with FASM Support</Description>
+	  <Description>Memory Manipulation Engine with ASFM Support</Description>
 	  <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-	  <Title>MemoryEngine.Core</Title>
+	  <Title>MemoryEngine</Title>
 	  <Copyright>Copyright (c) 2026 Trofline</Copyright>
-	  <PackageReadmeFile>README.md</PackageReadmeFile>
+	  <PackageReadmeFile></PackageReadmeFile>
 	  <PackageTags>Memory Manipulation;Game Hacking;Internal Tooling;C#;x86;Memory;Hooking;Injection</PackageTags>
-	  <PackageIcon>MemoryEngine.Core.png</PackageIcon>
+	  <PackageIcon></PackageIcon>
 	 
 
 
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <GenerateAssemblyInfo>True</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <GenerateAssemblyInfo>True</GenerateAssemblyInfo>
   </PropertyGroup>
 
   <ItemGroup>

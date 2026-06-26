@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace MemoryEngine.Core
+namespace MemoryEngine
 {
     public static class MemoryAccess
     {

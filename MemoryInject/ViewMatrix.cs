@@ -5,7 +5,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MemoryEngine.Core
+namespace MemoryEngine
 {
     public struct ViewMatrix
     {

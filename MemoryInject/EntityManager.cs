@@ -1,4 +1,4 @@
-﻿namespace MemoryEngine.Core
+﻿namespace MemoryEngine
 {
     public class Entity
     {

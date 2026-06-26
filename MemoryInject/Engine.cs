@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Linq;
 
-namespace MemoryEngine.Core
+namespace MemoryEngine
 {
     public class Engine : IDisposable
     {

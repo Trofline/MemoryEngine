@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using MemoryEngine.Core;
+using MemoryEngine;
 
-namespace MemoryEngine.Core
+namespace MemoryEngine
 {
     public class Hooking
     {
