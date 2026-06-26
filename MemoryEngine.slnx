@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="MemoryInject/MemoryEngine.Core.csproj" Id="ff125c1d-ddbd-4bc4-bff6-b556aba95cba" />
+</Solution>

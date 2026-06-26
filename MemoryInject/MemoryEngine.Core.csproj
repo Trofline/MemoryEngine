@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+
+	  <NoWarn>NU1701</NoWarn>
+
+	  <TargetFramework>net6.0</TargetFramework>
+	  <ImplicitUsings>enable</ImplicitUsings>
+	  <Nullable>enable</Nullable>
+	  <PlatformTarget>x86</PlatformTarget>
+
+	  <Version>1.0.1</Version>
+	  <Authors>Trofline</Authors>
+	  <Description>x86 Memory Manipulation Engine with FASM Support</Description>
+	  <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+	  <Title>MemoryEngine.Core</Title>
+	  <Copyright>Copyright (c) 2026 Trofline</Copyright>
+	  <PackageReadmeFile>README.md</PackageReadmeFile>
+	  <PackageTags>Memory Manipulation;Game Hacking;Internal Tooling;C#;x86;Memory;Hooking;Injection</PackageTags>
+	  <PackageIcon>MemoryEngine.Core.png</PackageIcon>
+	 
+
+
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Fasm.NET" Version="1.70.3.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+</Project>
