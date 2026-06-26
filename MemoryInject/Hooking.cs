@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using MemoryEngine;
 
 namespace MemoryEngine
@@ -14,7 +15,6 @@ namespace MemoryEngine
 
         public IntPtr GetOrCreateCave(string name, int size = 1024)
         {
-            // WICHTIG: Erst prüfen, ob schon eine Cave existiert!
             if (_allocatedCaves.TryGetValue(name, out IntPtr existingCave))
                 return existingCave;
 
@@ -25,7 +25,7 @@ namespace MemoryEngine
             return newCave;
         }
 
-        public void ApplyHook(string featureName, IntPtr hookAddress, string asmScript, bool x32)
+        public void ApplyHook(string featureName, IntPtr hookAddress, string asmScript)
         {
             IntPtr cave = GetOrCreateCave(featureName);
             string fullScript = $@"org 0x{cave.ToInt64():X}{Environment.NewLine}{asmScript}";
@@ -33,27 +33,18 @@ namespace MemoryEngine
             byte[] original = _engine.ReadMemory(hookAddress, 11);
             _activeHooks[featureName] = new HookInfo { HookAddress = hookAddress, CaveAddress = cave, OriginalBytes = original };
 
-            byte[] payload;
+            // HIER greift die Architektur-Erkennung:
+            byte[] payload = Assembler.Compile(fullScript, _engine.Is64Bit);
 
-            if (x32)
-            {
-                payload = Assembler.Compile32(fullScript);
-            }
-            else
-            {
-                payload = Assembler.Compile64(fullScript);
-            }
             WriteMemory(cave, payload);
             InjectJMP(hookAddress, cave);
         }
-
 
         public void RemoveHook(string featureName)
         {
             if (_activeHooks.TryGetValue(featureName, out var hook))
             {
                 WriteMemory(hook.HookAddress, hook.OriginalBytes);
-                // WICHTIG: Auch aus dem Cave-Dictionary entfernen
                 if (_allocatedCaves.ContainsKey(featureName))
                 {
                     MemoryAccess.VirtualFreeEx(_engine.ProcessHandle, _allocatedCaves[featureName], 0, MemoryAccess.MEM_RELEASE);
@@ -68,15 +59,19 @@ namespace MemoryEngine
             byte[] patch = new byte[11];
             for (int i = 0; i < 11; i++) patch[i] = 0x90;
             patch[0] = 0xE9;
+
+            // Jumps sind in x86 und x64 fast immer relative 32-Bit Offsets
             int offset = (int)((long)destination - (long)source - 5);
             Array.Copy(BitConverter.GetBytes(offset), 0, patch, 1, 4);
             WriteMemory(source, patch);
         }
+
         public void NopMemory(IntPtr address, int length)
         {
             byte[] nops = Enumerable.Repeat((byte)0x90, length).ToArray();
             WriteMemory(address, nops);
         }
+
         public void WriteMemory(IntPtr address, byte[] data)
         {
             MemoryAccess.VirtualProtectEx(_engine.ProcessHandle, address, (uint)data.Length, MemoryAccess.PAGE_EXECUTE_READWRITE, out uint oldProtect);

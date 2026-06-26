@@ -1,36 +1,58 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MemoryEngine
 {
+    public struct MatrixSettings
+    {
+        public bool IsColumnMajor;    // Manche Spiele speichern Spaltenweise
+        public bool IsZeroToOneRange; // Manche Spiele nutzen 0-1 NDC statt -1-1
+        public bool InvertY;          // DirectX vs OpenGL Unterschied
+    }
+
     public struct ViewMatrix
     {
+        public float[] m;
+        public MatrixSettings settings;
 
-        public float M11, M12, M13, M14;
-        public float M21, M22, M23, M24;
-        public float M31, M32, M33, M34;
-        public float M41, M42, M43, M44;
-
-
-        public static bool WorldToScreen(Vector3 pos, out Vector2 screenPos, ViewMatrix matrix, int width, int height)
+        public static ViewMatrix FromBytes(byte[] bytes, MatrixSettings settings)
         {
-            float clipX = pos.X * matrix.M11 + pos.Y * matrix.M21 + pos.Z * matrix.M31 + matrix.M41;
-            float clipY = pos.X * matrix.M12 + pos.Y * matrix.M22 + pos.Z * matrix.M32 + matrix.M42;
-            float clipW = pos.X * matrix.M14 + pos.Y * matrix.M24 + pos.Z * matrix.M34 + matrix.M44;
+            ViewMatrix matrix = new ViewMatrix { m = new float[16], settings = settings };
+            for (int i = 0; i < 16; i++)
+            {
+                matrix.m[i] = BitConverter.ToSingle(bytes, i * 4);
+            }
+            return matrix;
+        }
 
-            if (clipW < 0.1f) { screenPos = new Vector2(0, 0); return false; }
+        public bool WorldToScreen(Vector3 pos, out Vector2 screenPos, int width, int height)
+        {
+            // Wenn das Spiel Column-Major ist, transponieren wir die Matrix virtuell
+            float[] mat = settings.IsColumnMajor ? Transpose(m) : m;
 
-            float ndcX = clipX / clipW;
-            float ndcY = clipY / clipW;
+            float w = mat[3] * pos.X + mat[7] * pos.Y + mat[11] * pos.Z + mat[15];
 
-            screenPos.X = (width / 2 * ndcX) + (ndcX + width / 2);
-            screenPos.Y = -(height / 2 * ndcY) + (ndcY + height / 2);
+            if (w < 0.01f) { screenPos = new Vector2(0, 0); return false; }
+
+            float nx = (mat[0] * pos.X + mat[4] * pos.Y + mat[8] * pos.Z + mat[12]) / w;
+            float ny = (mat[1] * pos.X + mat[5] * pos.Y + mat[9] * pos.Z + mat[13]) / w;
+
+            float xOffset = settings.IsZeroToOneRange ? 0f : 1f;
+            screenPos.X = (width / 2f) * (nx + xOffset);
+
+            // Y-Invertierung je nach Grafik-API
+            screenPos.Y = settings.InvertY ? (height / 2f) * (1f - ny) : (height / 2f) * (1f + ny);
 
             return true;
+        }
+
+        private static float[] Transpose(float[] m)
+        {
+            float[] t = new float[16];
+            for (int i = 0; i < 4; i++)
+                for (int j = 0; j < 4; j++)
+                    t[i * 4 + j] = m[j * 4 + i];
+            return t;
         }
     }
 }

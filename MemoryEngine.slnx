@@ -3,6 +3,6 @@
     <Platform Name="Any CPU" />
     <Platform Name="x86" />
   </Configurations>
+  <Project Path="CheatMenu/CheatMenu.csproj" Id="d8a363c1-81a7-4431-920d-21c1bd420e78" />
   <Project Path="MemoryInject/MemoryEngine.csproj" Id="ff125c1d-ddbd-4bc4-bff6-b556aba95cba" />
-  <Project Path="SandBox/SandBox.csproj" Id="ff7c233b-329e-4ee4-908c-45e6afe321ed" />
 </Solution>

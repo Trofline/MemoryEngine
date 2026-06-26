@@ -1,35 +1,18 @@
 ﻿using System;
-using Binarysharp.Assemblers.Fasm; // Dein gefundener Namespace!
+using Binarysharp.Assemblers.Fasm;
 
 namespace MemoryEngine
 {
     public static class Assembler
     {
-        public static byte[] Compile32(string assemblyCode)
+        public static byte[] Compile(string assemblyCode, bool is64Bit)
         {
             try
             {
-                // WICHTIG: "use32" erzwingt 32-Bit Assembler für AssaultCube.
-                // Das \n ist einfach ein Zeilenumbruch, danach kommt dein Code.
-                string fullCode = "use32\n" + assemblyCode;
+                // Fügt vollautomatisch use32 oder use64 oben an deinen Code an
+                string mode = is64Bit ? "use64\n" : "use32\n";
+                string fullCode = mode + assemblyCode;
 
-                // FasmNet ist die Klasse, Assemble ist die Methode
-                return FasmNet.Assemble(fullCode);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("FASM Fehler: " + ex.Message);
-            }
-        }
-        public static byte[] Compile64(string assemblyCode)
-        {
-            try
-            {
-                // WICHTIG: "use32" erzwingt 32-Bit Assembler für AssaultCube.
-                // Das \n ist einfach ein Zeilenumbruch, danach kommt dein Code.
-                string fullCode = "use64\n" + assemblyCode;
-
-                // FasmNet ist die Klasse, Assemble ist die Methode
                 return FasmNet.Assemble(fullCode);
             }
             catch (Exception ex)
