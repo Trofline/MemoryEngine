@@ -9,14 +9,14 @@
 	  <Nullable>enable</Nullable>
 	  <PlatformTarget>AnyCPU</PlatformTarget>
 
-	  <Version>1.0.0</Version>
+	  <Version>1.1.1</Version>
 	  <Authors>Trofline</Authors>
-	  <Description>Memory Manipulation Engine with ASFM Support</Description>
+	  <Description>Memory Manipulation Engine with ASFM (assembly) Support, ViewMatrix, EntityManager and Hooking</Description>
 	  <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 	  <Title>MemoryEngine</Title>
 	  <Copyright>Copyright (c) 2026 Trofline</Copyright>
 	  <PackageReadmeFile></PackageReadmeFile>
-	  <PackageTags>Memory Manipulation;Game Hacking;Internal Tooling;C#;x86;Memory;Hooking;Injection</PackageTags>
+	  <PackageTags>Memory Manipulation;Game Hacking;Assembly;External Tooling;Internal Tooling;C#;x64;x86;Memory;Hooking;Injection</PackageTags>
 	  <PackageIcon></PackageIcon>
 	 
 

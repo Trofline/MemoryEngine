@@ -9,7 +9,7 @@ namespace MemoryEngine
         {
             try
             {
-                // Fügt vollautomatisch use32 oder use64 oben an deinen Code an
+      
                 string mode = is64Bit ? "use64\n" : "use32\n";
                 string fullCode = mode + assemblyCode;
 

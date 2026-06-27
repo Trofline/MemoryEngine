@@ -60,7 +60,7 @@ namespace MemoryEngine
             for (int i = 0; i < 11; i++) patch[i] = 0x90;
             patch[0] = 0xE9;
 
-            // Jumps sind in x86 und x64 fast immer relative 32-Bit Offsets
+
             int offset = (int)((long)destination - (long)source - 5);
             Array.Copy(BitConverter.GetBytes(offset), 0, patch, 1, 4);
             WriteMemory(source, patch);

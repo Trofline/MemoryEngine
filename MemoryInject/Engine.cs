@@ -10,7 +10,7 @@ namespace MemoryEngine
         public IntPtr ModuleBase { get; private set; }
         public int ModuleSize { get; private set; }
 
-        // DAS HIER IST DEIN SCHALTER FÜR ALLES
+
         public bool Is64Bit { get; private set; }
 
         public Engine(string processName, bool force32Bit = false)
@@ -27,7 +27,7 @@ namespace MemoryEngine
             ModuleSize = module.ModuleMemorySize;
             ProcessHandle = MemoryAccess.OpenProcess(MemoryAccess.PROCESS_ALL_ACCESS, false, proc.Id);
 
-            // Automatische Erkennung, wenn du es nicht erzwingst
+           
             Is64Bit = !force32Bit && Is64BitProcess(proc);
         }
 
@@ -39,13 +39,13 @@ namespace MemoryEngine
         {
             if (!Environment.Is64BitOperatingSystem) return false;
             IsWow64Process(proc.Handle, out bool isWow64);
-            return !isWow64; // Wenn es nicht WOW64 ist, ist es ein echter 64-Bit Prozess
+            return !isWow64;
         }
 
-        // --- DYNAMISCHE METHODEN (Passen sich an 32/64 Bit an) ---
+      
         public IntPtr ReadPointer(IntPtr address)
         {
-            int size = Is64Bit ? 8 : 4; // Hier passiert die Magie!
+            int size = Is64Bit ? 8 : 4; 
             byte[] buffer = new byte[size];
             MemoryAccess.ReadProcessMemory(ProcessHandle, address, buffer, (uint)size, out _);
 
@@ -64,12 +64,11 @@ namespace MemoryEngine
             return IntPtr.Add(currentAddress, offsets[offsets.Length - 1]);
         }
 
-        // --- STATISCHE METHODEN (Immer 4 Bytes, das ist physikalisch vorgegeben!) ---
         public int ReadInt(IntPtr address)
         {
             byte[] buffer = new byte[4];
             MemoryAccess.ReadProcessMemory(ProcessHandle, address, buffer, 4, out _);
-            return BitConverter.ToInt32(buffer, 0); // int ist immer 32 Bit / 4 Bytes!
+            return BitConverter.ToInt32(buffer, 0);
         }
 
         public void WriteInt(IntPtr address, int value)
@@ -82,7 +81,7 @@ namespace MemoryEngine
         {
             byte[] buffer = new byte[4];
             MemoryAccess.ReadProcessMemory(ProcessHandle, address, buffer, 4, out _);
-            return BitConverter.ToSingle(buffer, 0); // float ist immer 32 Bit / 4 Bytes!
+            return BitConverter.ToSingle(buffer, 0);
         }
 
         public byte[] ReadMemory(IntPtr address, int size)
