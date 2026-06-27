@@ -9,7 +9,7 @@
 	  <Nullable>enable</Nullable>
 	  <PlatformTarget>AnyCPU</PlatformTarget>
 
-	  <Version>1.1.1</Version>
+	  <Version>1.1.2</Version>
 	  <Authors>Trofline</Authors>
 	  <Description>Memory Manipulation Engine with ASFM (assembly) Support, ViewMatrix, EntityManager and Hooking</Description>
 	  <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
