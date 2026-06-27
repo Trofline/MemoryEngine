@@ -5,9 +5,9 @@ namespace MemoryEngine
 {
     public struct MatrixSettings
     {
-        public bool IsColumnMajor;    // Manche Spiele speichern Spaltenweise
-        public bool IsZeroToOneRange; // Manche Spiele nutzen 0-1 NDC statt -1-1
-        public bool InvertY;          // DirectX vs OpenGL Unterschied
+        public bool IsColumnMajor;
+        public bool IsZeroToOneRange;
+        public bool InvertY;
     }
 
     public struct ViewMatrix
@@ -27,9 +27,7 @@ namespace MemoryEngine
 
         public bool WorldToScreen(Vector3 pos, out Vector2 screenPos, int width, int height)
         {
-            // Wenn das Spiel Column-Major ist, transponieren wir die Matrix virtuell
             float[] mat = settings.IsColumnMajor ? Transpose(m) : m;
-
             float w = mat[3] * pos.X + mat[7] * pos.Y + mat[11] * pos.Z + mat[15];
 
             if (w < 0.01f) { screenPos = new Vector2(0, 0); return false; }
@@ -39,8 +37,6 @@ namespace MemoryEngine
 
             float xOffset = settings.IsZeroToOneRange ? 0f : 1f;
             screenPos.X = (width / 2f) * (nx + xOffset);
-
-            // Y-Invertierung je nach Grafik-API
             screenPos.Y = settings.InvertY ? (height / 2f) * (1f - ny) : (height / 2f) * (1f + ny);
 
             return true;
