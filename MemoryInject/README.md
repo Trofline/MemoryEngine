@@ -1,71 +1,37 @@
-﻿# MemoryEngine
+﻿# MemoryEngine: Advanced C# Game Trainer Framework
 
-`MemoryEngine` is a lightweight, external C# library built to simplify game memory manipulation and 3D-to-2D screen projection for ESP (Extra Sensory Perception) overlays. It is designed for educational purposes in the field of reverse engineering and game engine architecture.
+MemoryEngine is a professional-grade C# framework built for developers to create game trainers, memory manipulation tools, and reverse engineering utilities. The framework simplifies complex Windows API interactions, providing a robust abstraction layer for memory reading, writing, and inline code injection (detours).
 
-## Features
+## Key Features
 
-* **External Memory Access:** Read integers, floats, and pointers from target process memory without the need for DLL injection.
-* **Module Support:** Automatically calculate base addresses to handle dynamic memory allocation.
-* **Universal ViewMatrix:** A highly configurable projection engine that translates 3D game coordinates to 2D screen pixels for any game engine.
-* **Zero Dependencies:** Pure C# implementation using `System.Diagnostics` and `System.Numerics`.
+* **Robust Memory Management:** Efficiently read and write arbitrary data types, structures, and pointer chains within external processes.
+* **Pattern Scanning:** Robust AOB (Array of Bytes) scanning to locate game functions and variables dynamically, ensuring compatibility across different game versions.
+* **Modern Assembly Manipulation:** Integrated support for the 'Iced' assembler, allowing for safe, high-performance runtime assembly modification without external native dependencies.
+* **Advanced Hooking (Detours):** Powerful trampoline hook implementation that intercepts game execution, redirects the flow, and restores original instructions seamlessly.
+* **Memory Freezing:** Built-in background stabilization engine to keep memory values locked at user-defined states.
+* **Symbol Registry:** Integrated variable management to track, name, and control memory addresses globally.
 
----
+## Technical Architecture
 
-## Core Classes
+### Core Modules
 
-### 1. `Engine` Class
-Handles the communication with the target process.
-* `ReadMemory(IntPtr address, int size)`: Reads raw bytes from memory.
-* `ReadPointer(IntPtr address)`: Follows a memory address to retrieve a base pointer.
-* `ReadFloat(IntPtr address)` / `ReadInt(IntPtr address)`: Convenience wrappers for data types.
+* **Engine:** The foundation layer. It handles process identification, handle management, and privilege escalation (virtual memory protection). It acts as the primary interface for all raw memory access operations.
+* **PatternScanner:** Designed to solve the "static address" problem. By utilizing byte pattern matching, it maps memory segments of game modules to find offsets at runtime, eliminating the need for hardcoded address updates.
+* **Hooking & Code Caves:** This system allows for precise code modification. It utilizes "Code Caves" (newly allocated memory regions) to house custom logic. When a function is hooked, the system redirects execution to the cave, performs the injected logic, and safely returns to the original code flow.
+* **Iced Assembler:** The brain of the injection system. It disassembles original game code into manageable instructions, allowing the user to modify or remove specific logical operations directly through the library without writing brittle, manual assembly strings.
 
-### 2. `ViewMatrix` Class
-Handles the linear algebra required for ESP.
-* `ViewMatrix.FromBytes(...)`: Converts raw memory bytes into a structured 4x4 matrix.
-* `WorldToScreen(...)`: Projects 3D world coordinates into 2D overlay coordinates.
+## Stability & Safety
 
----
+The framework focuses heavily on process integrity. By using advanced memory protection handling (VirtualProtectEx), it ensures that modifications do not trigger access violations within the target process.
 
-## Usage Example
+**Critical Cleanup:**
+To maintain stability and prevent process crashes, the framework includes a complete cleanup mechanism. It is mandatory to execute a global cleanup routine upon application closure. This process removes all active hooks, restores original byte sequences to the target memory, and releases all reserved memory regions (Code Caves). Failure to perform this step can lead to process instability or game crashes after the trainer has been closed.
 
-```csharp
-using MemoryEngine;
-using System.Numerics;
+## Prerequisites
 
-// 1. Initialize the Engine
-Engine engine = new Engine("game_process_name", force32Bit: true);
+* **.NET 6.0 or newer.**
+* **Iced NuGet Package:** Required for internal assembly decoding and encoding.
 
-// 2. Configure Projection Settings (Universal across engines)
-MatrixSettings settings = new MatrixSettings { 
-    IsColumnMajor = false, 
-    IsZeroToOneRange = false, 
-    InvertY = true 
-};
+## Disclaimer
 
-// 3. Main Loop Logic
-void Update() 
-{
-    // Fetch Matrix and Entity List
-    byte[] mBytes = engine.ReadMemory((IntPtr)0x501AE8, 64);
-    ViewMatrix matrix = ViewMatrix.FromBytes(mBytes, settings);
-    
-    IntPtr entityList = engine.ReadPointer(engine.ModuleBase + 0x10F4F8);
-    int numEntities = engine.ReadInt(engine.ModuleBase + 0x10F500);
-
-    for (int i = 0; i < numEntities; i++) 
-    {
-        IntPtr entity = engine.ReadPointer(entityList + (i * 4));
-        
-        // Read coordinates
-        float x = engine.ReadFloat(entity + 0x34);
-        float y = engine.ReadFloat(entity + 0x38);
-        float z = engine.ReadFloat(entity + 0x3C);
-
-        // Project to screen
-        if (matrix.WorldToScreen(new Vector3(x, y, z), out Vector2 screenPos, width, height)) 
-        {
-            // Draw your ESP element here
-            DrawBox(screenPos);
-        }
-    }
-}
+MemoryEngine is strictly intended for educational purposes, software research, and single-player game modifications. The author bears no responsibility for any misuse, violations of game Terms of Service, or any damages arising from the use of this framework.

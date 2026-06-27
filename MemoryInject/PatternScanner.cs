@@ -8,31 +8,19 @@ namespace MemoryEngine
 
         public PatternScanner(Engine engine) => _engine = engine;
 
-        public IntPtr FindPattern(int regionSize, byte[] pattern)
+        public IntPtr FindPattern(string moduleName, string patternString)
         {
-            byte[] buffer = new byte[regionSize];
-            MemoryAccess.ReadProcessMemory(_engine.ProcessHandle, _engine.ModuleBase, buffer, (uint)regionSize, out _);
+            var (baseAddress, moduleSize) = _engine.GetModuleInfo(moduleName);
 
-            for (int i = 0; i < buffer.Length - pattern.Length; i++)
-            {
-                bool match = true;
-                for (int j = 0; j < pattern.Length; j++)
-                {
-                    if (pattern[j] != 0xFF && buffer[i + j] != pattern[j])
-                    {
-                        match = false;
-                        break;
-                    }
-                }
-                if (match) return IntPtr.Add(_engine.ModuleBase, i);
-            }
-            return IntPtr.Zero;
+            if (baseAddress == IntPtr.Zero || moduleSize == 0)
+                return IntPtr.Zero;
+
+            return FindPattern(baseAddress, moduleSize, patternString);
         }
 
-        public IntPtr DynamicFindPattern(string patternString)
+        public IntPtr FindPattern(IntPtr baseAddress, int regionSize, string patternString)
         {
-        
-            string[] parts = patternString.Split(' ');
+            string[] parts = patternString.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
             byte[] pattern = new byte[parts.Length];
             bool[] mask = new bool[parts.Length];
 
@@ -40,34 +28,39 @@ namespace MemoryEngine
             {
                 if (parts[i] == "??" || parts[i] == "?")
                 {
-                    mask[i] = false; 
+                    mask[i] = false;
                 }
                 else
                 {
                     pattern[i] = Convert.ToByte(parts[i], 16);
-                    mask[i] = true; 
+                    mask[i] = true;
                 }
             }
 
-            byte[] buffer = new byte[_engine.ModuleSize];
-            MemoryAccess.ReadProcessMemory(_engine.ProcessHandle, _engine.ModuleBase, buffer, (uint)_engine.ModuleSize, out _);
+            byte[] buffer = new byte[regionSize];
+            MemoryAccess.ReadProcessMemory(_engine.ProcessHandle, baseAddress, buffer, (uint)regionSize, out _);
 
-         
             for (int i = 0; i < buffer.Length - pattern.Length; i++)
             {
                 bool match = true;
                 for (int j = 0; j < pattern.Length; j++)
                 {
-
                     if (mask[j] && buffer[i + j] != pattern[j])
                     {
                         match = false;
                         break;
                     }
                 }
-                if (match) return IntPtr.Add(_engine.ModuleBase, i);
+
+                if (match) return IntPtr.Add(baseAddress, i);
             }
+
             return IntPtr.Zero;
+        }
+
+        public IntPtr FindPattern(int regionSize, string patternString)
+        {
+            return FindPattern(_engine.ModuleBase, regionSize, patternString);
         }
     }
 }
