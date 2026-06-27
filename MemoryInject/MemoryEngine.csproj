@@ -15,9 +15,16 @@
 	  <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 	  <Title>MemoryEngine</Title>
 	  <Copyright>Copyright (c) 2026 Trofline</Copyright>
-	  <PackageReadmeFile></PackageReadmeFile>
+	  <PackageReadmeFile>README.md</PackageReadmeFile>
 	  <PackageTags>Memory Manipulation;Game Hacking;Assembly;External Tooling;Internal Tooling;C#;x64;x86;Memory;Hooking;Injection</PackageTags>
-	  <PackageIcon></PackageIcon>
+	  <PackageIcon>MemoryEngine.png</PackageIcon>
+	  <PackageProjectUrl></PackageProjectUrl>
+	  <RepositoryUrl>https://github.com/Trofline/MemoryEngine</RepositoryUrl>
+	  <RepositoryType>git</RepositoryType>
+	  <PackageLicenseFile>LICENSE</PackageLicenseFile>
+	  <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+	  <IncludeSymbols>True</IncludeSymbols>
+	  <SymbolPackageFormat>snupkg</SymbolPackageFormat>
 	 
 
 
@@ -32,10 +39,25 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="..\..\..\Logo\MemoryEngine.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Fasm.NET" Version="1.70.3.2" />
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="LICENSE">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
     <None Update="README.md">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>

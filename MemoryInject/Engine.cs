@@ -91,6 +91,11 @@ namespace MemoryEngine
             return buffer;
         }
 
+        public void FreezeMemory(IntPtr address)
+        {
+            
+        }
+
         public void Dispose()
         {
             if (ProcessHandle != IntPtr.Zero)
