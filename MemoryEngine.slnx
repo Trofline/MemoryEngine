@@ -3,7 +3,6 @@
     <Platform Name="Any CPU" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="AssaultCube/AssaultCube.csproj" />
-  <Project Path="GTFO/GTFO.csproj" Id="704643d4-f383-4b48-8133-f9ea38e2f7ba" />
+  <Project Path="AssaultCube_Payload/AssaultCube_Payload.csproj" Id="5e30ba73-324a-4b0b-ad87-94da07d4ae8f" />
   <Project Path="MemoryInject/MemoryEngine.csproj" Id="ff125c1d-ddbd-4bc4-bff6-b556aba95cba" />
 </Solution>

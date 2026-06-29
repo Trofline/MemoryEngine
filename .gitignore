@@ -363,5 +363,7 @@ MigrationBackup/
 FodyWeavers.xsd
 
 
-/AssaultCube/
+/AssaultCubeESP/
 /GTFO/
+/AssaultCube_Payload/
+/InjectAssaultCubeDLL/

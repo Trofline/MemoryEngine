@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace MemoryEngine
+namespace MemoryEngine.Core
 {
     public class PatternScanner
     {

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MemoryEngine
+namespace MemoryEngine.Core
 {
     public class HookInfo
     {

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace MemoryEngine
+namespace MemoryEngine.Core
 {
     public static class MemoryAccess
     {
@@ -10,6 +10,11 @@ namespace MemoryEngine
         public const uint MEM_RESERVE = 0x2000;
         public const uint PAGE_EXECUTE_READWRITE = 0x40;
         public const uint MEM_RELEASE = 0x8000;
+        public const uint PAGE_READWRITE = 0x04;
+
+
+ 
+
 
         [DllImport("kernel32.dll")]
         internal static extern IntPtr OpenProcess(int dwDesiredAccess, bool bInheritHandle, int dwProcessId);

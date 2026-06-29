@@ -1,0 +1,13 @@
+﻿<Window x:Class="CheatMenu.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="ESP Overlay" Height="600" Width="800"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="True"
+        Loaded="Window_Loaded">
+    <Canvas Name="ESP_Canvas">
+    </Canvas>
+</Window>

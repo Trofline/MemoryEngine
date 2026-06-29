@@ -9,7 +9,7 @@
 	  <Nullable>enable</Nullable>
 	  <PlatformTarget>AnyCPU</PlatformTarget>
 
-	  <Version>1.3.0</Version>
+	  <Version>1.3.1</Version>
 	  <Authors>Trofline</Authors>
 	  <Description>Memory Manipulation Engine with ICED (assembly) Support, ViewMatrix, EntityManager, Hooking, PatternScanning/Array Of Byte scanning</Description>
 	  <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -25,6 +25,7 @@
 	  <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
 	  <IncludeSymbols>True</IncludeSymbols>
 	  <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+	  <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 	 
 
 
@@ -51,6 +52,7 @@
 
   <ItemGroup>
     <PackageReference Include="Iced" Version="1.21.0" />
+    <PackageReference Include="MinHook.NET" Version="1.1.2" />
   </ItemGroup>
 
   <ItemGroup>
@@ -62,5 +64,9 @@
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Utility\" />
   </ItemGroup>
 </Project>

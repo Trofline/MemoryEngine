@@ -4,9 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Iced.Intel;
+using MemoryEngine.Core;
 using static Iced.Intel.AssemblerRegisters;
 
-namespace MemoryEngine
+namespace MemoryEngine.External
 {
     public class StreamCodeWriter : CodeWriter
     {
@@ -15,7 +16,7 @@ namespace MemoryEngine
         public override void WriteByte(byte value) => _stream.WriteByte(value);
     }
 
-    public class Hooking
+    public class ExternalHooking
     {
         private readonly Engine _engine;
         private readonly PatternScanner _scanner;
@@ -23,7 +24,7 @@ namespace MemoryEngine
         private readonly Dictionary<string, HookInfo> _activeHooks = new();
         private readonly Dictionary<string, IntPtr> _symbolRegistry = new();
 
-        public Hooking(Engine engine)
+        public ExternalHooking(Engine engine)
         {
             _engine = engine;
             _scanner = new PatternScanner(engine);

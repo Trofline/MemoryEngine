@@ -5,6 +5,9 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using MemoryEngine.Core;
+using MemoryEngine.External;
+using MemoryEngine.Internal;
 
 namespace MemoryEngine
 {
@@ -20,13 +23,17 @@ namespace MemoryEngine
         private readonly object _freezeLock = new();
         private bool _isFreezingActive = false;
 
+        public ExternalHooking External { get; private set; }
+        public InternalHooking Internal { get; private set; }
+        public PatternScanner PatternScanner { get; private set; }
+
         public Engine(string processName, bool force32Bit = false)
         {
             Process[] processes = Process.GetProcessesByName(processName);
             if (processes.Length == 0) throw new Exception($"Process '{processName}' not found!");
 
             _proc = processes[0];
-            ProcessModule module = _proc.MainModule;
+            ProcessModule? module = _proc.MainModule;
 
             if (module == null) throw new Exception("Main Module not found!");
 
@@ -35,6 +42,10 @@ namespace MemoryEngine
             ProcessHandle = MemoryAccess.OpenProcess(MemoryAccess.PROCESS_ALL_ACCESS, false, _proc.Id);
 
             Is64Bit = !force32Bit && Is64BitProcess(_proc);
+
+            External = new ExternalHooking(this);
+            Internal = new InternalHooking();
+            PatternScanner = new PatternScanner(this);
         }
 
         public (IntPtr BaseAddress, int ModuleSize) GetModuleInfo(string moduleName)
@@ -56,25 +67,18 @@ namespace MemoryEngine
         // UTILITIES (NOP & PATCH)
         // ==========================================
 
-        /// <summary>
-        /// Überschreibt Code im Speicher mit NOP-Befehlen (0x90), um z.B. Munitionsabzug zu verhindern.
-        /// </summary>
         public void Nop(IntPtr address, int length)
         {
             byte[] nops = Enumerable.Repeat((byte)0x90, length).ToArray();
             Patch(address, nops);
         }
 
-        /// <summary>
-        /// Überschreibt eine Speicheradresse sicher mit beliebigen Bytes (hebt vorherigen Schreibschutz auf).
-        /// </summary>
         public void Patch(IntPtr address, byte[] bytes)
         {
             MemoryAccess.VirtualProtectEx(ProcessHandle, address, (uint)bytes.Length, MemoryAccess.PAGE_EXECUTE_READWRITE, out uint oldProtect);
             MemoryAccess.WriteProcessMemory(ProcessHandle, address, bytes, (uint)bytes.Length, out _);
             MemoryAccess.VirtualProtectEx(ProcessHandle, address, (uint)bytes.Length, oldProtect, out _);
         }
-
 
         // ==========================================
         // LESE-METHODEN (ALL TYPES)
@@ -92,42 +96,48 @@ namespace MemoryEngine
             return ReadByte(address) != 0;
         }
 
-        public short ReadInt16(IntPtr address) // short
+        public short ReadInt16(IntPtr address)
         {
             byte[] buffer = new byte[2];
             MemoryAccess.ReadProcessMemory(ProcessHandle, address, buffer, 2, out _);
             return BitConverter.ToInt16(buffer, 0);
         }
 
-        public ushort ReadUInt16(IntPtr address) // ushort
+        public ushort ReadUInt16(IntPtr address)
         {
             byte[] buffer = new byte[2];
             MemoryAccess.ReadProcessMemory(ProcessHandle, address, buffer, 2, out _);
             return BitConverter.ToUInt16(buffer, 0);
         }
 
-        public int ReadInt32(IntPtr address) // int
+        public int ReadInt32(IntPtr address)
         {
             byte[] buffer = new byte[4];
             MemoryAccess.ReadProcessMemory(ProcessHandle, address, buffer, 4, out _);
             return BitConverter.ToInt32(buffer, 0);
         }
 
-        public uint ReadUInt32(IntPtr address) // uint
+        // ALIAS FÜR EXTERNEN ESP-AUFRUF
+        public int ReadInt(IntPtr address)
+        {
+            return ReadInt32(address);
+        }
+
+        public uint ReadUInt32(IntPtr address)
         {
             byte[] buffer = new byte[4];
             MemoryAccess.ReadProcessMemory(ProcessHandle, address, buffer, 4, out _);
             return BitConverter.ToUInt32(buffer, 0);
         }
 
-        public long ReadInt64(IntPtr address) // long
+        public long ReadInt64(IntPtr address)
         {
             byte[] buffer = new byte[8];
             MemoryAccess.ReadProcessMemory(ProcessHandle, address, buffer, 8, out _);
             return BitConverter.ToInt64(buffer, 0);
         }
 
-        public ulong ReadUInt64(IntPtr address) // ulong
+        public ulong ReadUInt64(IntPtr address)
         {
             byte[] buffer = new byte[8];
             MemoryAccess.ReadProcessMemory(ProcessHandle, address, buffer, 8, out _);
@@ -155,16 +165,11 @@ namespace MemoryEngine
             return buffer;
         }
 
-        /// <summary>
-        /// Liest einen Text aus dem Speicher. Unterstützt ASCII, UTF8 und Unicode.
-        /// </summary>
-        public string ReadString(IntPtr address, int length, Encoding encoding = null)
+        public string ReadString(IntPtr address, int length, Encoding? encoding = null)
         {
             if (encoding == null) encoding = Encoding.UTF8;
             byte[] buffer = ReadMemory(address, length);
             string text = encoding.GetString(buffer);
-
-            // Schneidet Text beim ersten Null-Terminator ab, falls vorhanden
             int nullIndex = text.IndexOf('\0');
             return nullIndex >= 0 ? text.Substring(0, nullIndex) : text;
         }
@@ -174,9 +179,7 @@ namespace MemoryEngine
             int size = Is64Bit ? 8 : 4;
             byte[] buffer = new byte[size];
             MemoryAccess.ReadProcessMemory(ProcessHandle, address, buffer, (uint)size, out _);
-
-            return Is64Bit ? (IntPtr)BitConverter.ToInt64(buffer, 0)
-                           : (IntPtr)BitConverter.ToInt32(buffer, 0);
+            return Is64Bit ? (IntPtr)BitConverter.ToInt64(buffer, 0) : (IntPtr)BitConverter.ToInt32(buffer, 0);
         }
 
         public IntPtr ReadPointerChain(IntPtr baseAddress, int[] offsets)
@@ -189,7 +192,6 @@ namespace MemoryEngine
             }
             return IntPtr.Add(currentAddress, offsets[offsets.Length - 1]);
         }
-
 
         // ==========================================
         // SCHREIB-METHODEN (ALL TYPES)
@@ -220,6 +222,12 @@ namespace MemoryEngine
             Patch(address, BitConverter.GetBytes(value));
         }
 
+        // ALIAS FÜR EXTERNEN ESP-AUFRUF
+        public void WriteInt(IntPtr address, int value)
+        {
+            WriteInt32(address, value);
+        }
+
         public void WriteUInt32(IntPtr address, uint value)
         {
             Patch(address, BitConverter.GetBytes(value));
@@ -245,24 +253,17 @@ namespace MemoryEngine
             Patch(address, BitConverter.GetBytes(value));
         }
 
-        /// <summary>
-        /// Schreibt einen String in den Speicher.
-        /// </summary>
-        public void WriteString(IntPtr address, string text, Encoding encoding = null)
+        public void WriteString(IntPtr address, string text, Encoding? encoding = null)
         {
             if (encoding == null) encoding = Encoding.UTF8;
-            byte[] data = encoding.GetBytes(text + "\0"); // Null-Terminator anhängen
+            byte[] data = encoding.GetBytes(text + "\0");
             Patch(address, data);
         }
-
 
         // ==========================================
         // GENERISCHES POWER-FEATURE (FÜR STRUKTUREN)
         // ==========================================
 
-        /// <summary>
-        /// Liest JEDEN beliebigen unmanaged Datentyp oder Struct (z.B. Vector3, Custom Structs) direkt ein.
-        /// </summary>
         public T Read<T>(IntPtr address) where T : unmanaged
         {
             int size = Marshal.SizeOf<T>();
@@ -280,9 +281,6 @@ namespace MemoryEngine
             }
         }
 
-        /// <summary>
-        /// Schreibt JEDEN beliebigen unmanaged Datentyp oder Struct direkt in den Speicher.
-        /// </summary>
         public void Write<T>(IntPtr address, T value) where T : unmanaged
         {
             int size = Marshal.SizeOf<T>();
@@ -301,7 +299,6 @@ namespace MemoryEngine
             Patch(address, buffer);
         }
 
-
         // ==========================================
         // CHEAT ENGINE FREEZE SYSTEM
         // ==========================================
@@ -311,7 +308,6 @@ namespace MemoryEngine
             lock (_freezeLock)
             {
                 _frozenValues[address] = value;
-
                 if (!_isFreezingActive)
                 {
                     _isFreezingActive = true;
@@ -342,7 +338,6 @@ namespace MemoryEngine
                 while (true)
                 {
                     KeyValuePair<IntPtr, byte[]>[] targets;
-
                     lock (_freezeLock)
                     {
                         if (_frozenValues.Count == 0)
@@ -357,20 +352,10 @@ namespace MemoryEngine
                     {
                         MemoryAccess.WriteProcessMemory(ProcessHandle, target.Key, target.Value, (uint)target.Value.Length, out _);
                     }
-
                     await Task.Delay(10);
                 }
             });
         }
-
-
-        // ==========================================
-        // SYSTEM CHECKS & DISPOSE
-        // ==========================================
-
-        [DllImport("kernel32.dll", SetLastError = true, CallingConvention = CallingConvention.Winapi)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool IsWow64Process([In] IntPtr process, [Out] out bool wow64Process);
 
         private bool Is64BitProcess(Process proc)
         {
@@ -378,6 +363,10 @@ namespace MemoryEngine
             IsWow64Process(proc.Handle, out bool isWow64);
             return !isWow64;
         }
+
+        [DllImport("kernel32.dll", SetLastError = true, CallingConvention = CallingConvention.Winapi)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool IsWow64Process([In] IntPtr process, [Out] out bool wow64Process);
 
         public void Dispose()
         {

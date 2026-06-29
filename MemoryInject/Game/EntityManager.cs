@@ -1,4 +1,4 @@
-﻿namespace MemoryEngine
+﻿namespace MemoryEngine.Game
 {
     public class Entity
     {
