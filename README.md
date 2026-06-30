@@ -1,5 +1,7 @@
 # MemoryEngine
 
+# This README is not up2date!!! There are many new features, Ive pasted an example in csharp code below...
+
 `MemoryEngine` is a lightweight, external C# library built to simplify game memory manipulation and 3D-to-2D screen projection for ESP (Extra Sensory Perception) overlays. It is designed for educational purposes in the field of reverse engineering and game engine architecture.
 
 ## Features
@@ -29,43 +31,94 @@ Handles the linear algebra required for ESP.
 ## Usage Example
 
 ```csharp
+using System.Text;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
+using System.Windows.Shapes;
 using MemoryEngine;
-using System.Numerics;
+using MemoryEngine.Core;
+using MemoryEngine.External;
+using static Iced.Intel.AssemblerRegisters;
 
-// 1. Initialize the Engine
-Engine engine = new Engine("game_process_name", force32Bit: true);
-
-// 2. Configure Projection Settings (Universal across engines)
-MatrixSettings settings = new MatrixSettings { 
-    IsColumnMajor = false, 
-    IsZeroToOneRange = false, 
-    InvertY = true 
-};
-
-// 3. Main Loop Logic
-void Update() 
+namespace GTFO_CheatClient
 {
-    // Fetch Matrix and Entity List
-    byte[] mBytes = engine.ReadMemory((IntPtr)0x501AE8, 64);
-    ViewMatrix matrix = ViewMatrix.FromBytes(mBytes, settings);
-    
-    IntPtr entityList = engine.ReadPointer(engine.ModuleBase + 0x10F4F8);
-    int numEntities = engine.ReadInt(engine.ModuleBase + 0x10F500);
-
-    for (int i = 0; i < numEntities; i++) 
+    /// <summary>
+    /// Interaction logic for MainWindow.xaml
+    /// </summary>
+    public partial class MainWindow : Window
     {
-        IntPtr entity = engine.ReadPointer(entityList + (i * 4));
-        
-        // Read coordinates
-        float x = engine.ReadFloat(entity + 0x34);
-        float y = engine.ReadFloat(entity + 0x38);
-        float z = engine.ReadFloat(entity + 0x3C);
+        Engine engine;
+        ExternalHooking hooker;
+        PatternScanner patternScanner;
 
-        // Project to screen
-        if (matrix.WorldToScreen(new Vector3(x, y, z), out Vector2 screenPos, width, height)) 
+        IntPtr freezeAmmoAddr;
+        bool freezeAmmoStatus = false;
+
+        public MainWindow()
         {
-            // Draw your ESP element here
-            DrawBox(screenPos);
+            InitializeComponent(); //UI
+            this.Closed += Window_Closed; //Event-Handler
+        }
+
+        private void FreezeAmmoBtn_Click(object sender, RoutedEventArgs e)
+        {
+            int stateToWrite = freezeAmmoStatus ? 0 : 1;
+            engine.Write<int>(freezeAmmoAddr,stateToWrite);
+            freezeAmmoStatus = !freezeAmmoStatus;
+
+
+            //Optional
+            FreezeAmmoBtn.Content = freezeAmmoStatus ? "Freeze: ON" : "Freeze: OFF";
+        }
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            engine = new Engine("GTFO");
+            hooker = new ExternalHooking(engine);
+            patternScanner = new PatternScanner(engine);
+            freezeAmmoAddr = hooker.AllocateVariable<int>("FreezeAmmoVariable",0);
+            FreezeAmmoInit();
+        }
+
+        private void FreezeAmmoInit()
+        {
+            string aob = "FF 8B 90 02 00 00 48 8B 82 ?? ?? ?? ?? 48 8B 92 ?? ?? ?? ?? FF D0";
+            int aobLength = 22;
+
+            hooker.ApplyAobDetour("FreezeAmmo", "GameAssembly.dll", aob, aobLength,
+                (asm, originalInstructions) =>
+                {
+                    var makeOriginal = asm.CreateLabel();
+
+                    asm.mov(rax,freezeAmmoAddr.ToInt64());
+                    asm.cmp(__dword_ptr[rax],1);
+                    asm.je(makeOriginal);
+                    //remove/skip dec
+                    originalInstructions.RemoveAt(0);
+
+                    asm.Label(ref makeOriginal);
+                    //make everything normal again
+                    asm.AddInstruction(originalInstructions[0]);
+                });
+
+//0. dec[rbx + 00000290]
+//1. mov rax,[rdx + 00000AB0]
+//2. mov rdx,[rdx + 00000AB8]
+//3. call rax
+
+        }
+
+        private void Window_Closed(object sender, EventArgs e)
+        {
+            hooker.RemoveAll();
+            engine.Dispose();
+            Environment.Exit(0);
         }
     }
 }
