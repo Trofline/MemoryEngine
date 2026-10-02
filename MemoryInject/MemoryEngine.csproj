@@ -7,7 +7,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<PlatformTarget>AnyCPU</PlatformTarget>
-		<Version>1.4.1</Version>
+		<Version>1.4.5</Version>
 		<Authors>Trofline</Authors>
 		<Description>Memory Manipulation Engine with ICED (assembly) Support, ViewMatrix, EntityManager, Hooking, Pattern/AOB-Scanning, ESP, Aimbot and many more. It is a GameHack Framework and can be used both Internal and External hacks</Description>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>

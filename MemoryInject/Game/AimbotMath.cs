@@ -5,24 +5,38 @@ namespace MemoryEngine.Game
 {
     public static class AimbotMath
     {
-        // Beispiel: Ein universeller Ansatz, bei dem du die Skalierung und Offsets pro Spiel anpassen kannst
-        public static (float pitch, float yaw) CalculateAngle(Vector3 localPos, Vector3 targetPos, float zOffset = 0.0f)
-        {
-            // Zielposition mit spielspezifischem Höhen-Offset (z.B. Kopf-Korrektur)
-            Vector3 adjustedTarget = new Vector3(targetPos.X, targetPos.Y, targetPos.Z + zOffset);
+        private static readonly Dictionary<IntPtr, Vector3> _lastTargetPositions = new Dictionary<IntPtr, Vector3>();
 
-            float deltaX = adjustedTarget.X - localPos.X;
-            float deltaY = adjustedTarget.Y - localPos.Y;
-            float deltaZ = adjustedTarget.Z - localPos.Z;
+        public static (float pitch, float yaw) CalculateAngle(Vector3 localPos, Vector3 targetPos, IntPtr entityKey = default, bool prediction = false, float zOffset = 0.5f)
+        {
+            Vector3 finalTarget = new Vector3(targetPos.X, targetPos.Y, targetPos.Z + zOffset);
+
+            if (prediction && entityKey != default)
+            {
+                if (_lastTargetPositions.TryGetValue(entityKey, out Vector3 lastPos))
+                {
+                    Vector3 velocity = finalTarget - lastPos;
+                    float predictionFactor = 1.5f; // Kann man hier festlegen oder übergeben
+                    finalTarget += velocity * predictionFactor;
+                }
+                _lastTargetPositions[entityKey] = finalTarget;
+            }
+
+            float deltaX = finalTarget.X - localPos.X;
+            float deltaY = finalTarget.Y - localPos.Y;
+            float deltaZ = finalTarget.Z - localPos.Z;
 
             float horizontalDistance = MathF.Sqrt(deltaX * deltaX + deltaY * deltaY);
 
-            // Die Formel selbst bleibt im Kern gleich, aber die Ausrichtung 
-            // kann pro Spiel über Parameter justiert werden
             float yaw = MathF.Atan2(deltaY, deltaX) * (180f / MathF.PI) + 90f;
             float pitch = MathF.Atan2(deltaZ, horizontalDistance) * (180f / MathF.PI);
 
             return (pitch, yaw);
+        }
+
+        public static void ClearHistory()
+        {
+            _lastTargetPositions.Clear();
         }
     }
 }

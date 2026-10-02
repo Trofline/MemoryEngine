@@ -3,6 +3,7 @@
 Created with AI, so please verify all information is correct and up-to-date. This documentation is intended to be beginner-friendly with this package, but it is not a substitute for understanding C#, Windows memory management, or game hacking concepts.
 # MemoryEngine - Ultimate Beginner-to-Advanced Documentation
 Welcome to MemoryEngine! This document is designed so that anyone—from absolute beginners to experienced developers—can easily understand and use every single class, property, and method in this framework.
+Aimbot and other advanced features are not included in this documentation, but the framework provides all the necessary tools
 
 ---
 
