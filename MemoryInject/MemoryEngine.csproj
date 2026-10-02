@@ -1,72 +1,58 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
+	<PropertyGroup>
+		<NoWarn>NU1701</NoWarn>
+		<TargetFramework>net6.0-windows</TargetFramework>
+		<UseWindowsForms>true</UseWindowsForms>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<PlatformTarget>AnyCPU</PlatformTarget>
+		<Version>1.4.0</Version>
+		<Authors>Trofline</Authors>
+		<Description>Memory Manipulation Engine with ICED (assembly) Support, ViewMatrix, EntityManager, Hooking, Pattern/AOB-Scanning, ESPOverlay. It is a GameHack Framework and can be used both Internal and External</Description>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<Title>MemoryEngine</Title>
+		<Copyright>Copyright (c) 2026 Trofline</Copyright>
+		<PackageTags>Memory Manipulation;Game Hacking;Trainer;Cheat;Wallhack;ESP;Assembly;External Tooling;Internal Tooling;C#;x64;x86;Memory;Hooking;Injection</PackageTags>
+		<PackageIcon>MemoryEngine.png</PackageIcon>
+		<PackageProjectUrl></PackageProjectUrl>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<RepositoryUrl>https://github.com/Trofline/MemoryEngine</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<PackageLicenseFile>LICENSE</PackageLicenseFile>
+		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+		<IncludeSymbols>True</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+	</PropertyGroup>
 
-	  <NoWarn>NU1701</NoWarn>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+		<GenerateAssemblyInfo>True</GenerateAssemblyInfo>
+	</PropertyGroup>
 
-	  <TargetFramework>net6.0</TargetFramework>
-	  <ImplicitUsings>enable</ImplicitUsings>
-	  <Nullable>enable</Nullable>
-	  <PlatformTarget>AnyCPU</PlatformTarget>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+		<GenerateAssemblyInfo>True</GenerateAssemblyInfo>
+	</PropertyGroup>
 
-	  <Version>1.3.1</Version>
-	  <Authors>Trofline</Authors>
-	  <Description>Memory Manipulation Engine with ICED (assembly) Support, ViewMatrix, EntityManager, Hooking, PatternScanning/Array Of Byte scanning</Description>
-	  <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-	  <Title>MemoryEngine</Title>
-	  <Copyright>Copyright (c) 2026 Trofline</Copyright>
-	  <PackageReadmeFile>README.md</PackageReadmeFile>
-	  <PackageTags>Memory Manipulation;Game Hacking;Trainer;Cheat;Wallhack;ESP;Assembly;External Tooling;Internal Tooling;C#;x64;x86;Memory;Hooking;Injection</PackageTags>
-	  <PackageIcon>MemoryEngine.png</PackageIcon>
-	  <PackageProjectUrl></PackageProjectUrl>
-	  <RepositoryUrl>https://github.com/Trofline/MemoryEngine</RepositoryUrl>
-	  <RepositoryType>git</RepositoryType>
-	  <PackageLicenseFile>LICENSE</PackageLicenseFile>
-	  <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-	  <IncludeSymbols>True</IncludeSymbols>
-	  <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-	  <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-	 
+	<ItemGroup>
+		<None Include="..\..\..\Logo\MemoryEngine.png">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<!-- DAS HIER HAT GEFEHLT: -->
+		<None Include="README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="LICENSE">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
 
+	<ItemGroup>
+		<PackageReference Include="Iced" Version="1.21.0" />
+		<PackageReference Include="MinHook.NET" Version="1.1.2" />
+	</ItemGroup>
 
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <GenerateAssemblyInfo>True</GenerateAssemblyInfo>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <GenerateAssemblyInfo>True</GenerateAssemblyInfo>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <None Include="..\..\..\Logo\MemoryEngine.png">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-    <None Include="..\README.md">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Iced" Version="1.21.0" />
-    <PackageReference Include="MinHook.NET" Version="1.1.2" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="LICENSE">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-    <None Update="README.md">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Utility\" />
-  </ItemGroup>
 </Project>
