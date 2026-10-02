@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Numerics;
 
 namespace MemoryEngine.Game
@@ -9,23 +10,29 @@ namespace MemoryEngine.Game
 
         public static (float pitch, float yaw) CalculateAngle(Vector3 localPos, Vector3 targetPos, IntPtr entityKey = default, bool prediction = false, float zOffset = 0.5f)
         {
-            Vector3 finalTarget = new Vector3(targetPos.X, targetPos.Y, targetPos.Z + zOffset);
+            Vector3 finalTarget = targetPos;
 
             if (prediction && entityKey != default)
             {
                 if (_lastTargetPositions.TryGetValue(entityKey, out Vector3 lastPos))
                 {
-                    Vector3 velocity = finalTarget - lastPos;
-                    float predictionFactor = 1.5f; // Kann man hier festlegen oder übergeben
+                    // Berechne die echte Bewegung seit dem letzten Frame anhand der rohen Position
+                    Vector3 velocity = targetPos - lastPos;
+                    float predictionFactor = 1.2f; // Etwas sanfter starten (1.2 statt 1.5)
                     finalTarget += velocity * predictionFactor;
                 }
-                _lastTargetPositions[entityKey] = finalTarget;
+                // Speichere die rohe (aktuelle) Position für den nächsten Frame
+                _lastTargetPositions[entityKey] = targetPos;
             }
+
+            // Erst jetzt den Kopf-Offset auf das vorausberechnete Ziel draufrechnen
+            finalTarget.Z += zOffset;
 
             float deltaX = finalTarget.X - localPos.X;
             float deltaY = finalTarget.Y - localPos.Y;
             float deltaZ = finalTarget.Z - localPos.Z;
 
+            // Korrigierte Zeile: Satz des Pythagoras für die 2D-Distanz
             float horizontalDistance = MathF.Sqrt(deltaX * deltaX + deltaY * deltaY);
 
             float yaw = MathF.Atan2(deltaY, deltaX) * (180f / MathF.PI) + 90f;
