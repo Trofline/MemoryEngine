@@ -3,135 +3,199 @@
 [![NuGet Version](https://img.shields.io/nuget/v/MemoryEngine.svg)](https://www.nuget.org/packages/MemoryEngine)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A high-performance, modular **Game Hacking & Memory Manipulation Framework** written in C# (.NET 6.0+). Supports internal & external tooling, thread-safe offset management, pattern scanning, ICED detours, MinHook detours, event caves, and Windows Forms ESP overlays.
+A high-performance, modular **Game Hacking & Memory Manipulation Framework** written in C# (.NET 6.0+). Supports internal & external memory access, thread-safe offset management, pattern scanning, ICED detours, MinHook hooks, event caves, shellcode execution, DLL injection, input handling, memory caching, and Windows Forms ESP overlays.
 
 ---
 
-## 🛠 Features & API Surface
+## 🛠 Features & Complete API Surface
 
-### Engine (`Engine.cs`)
-- **Process Connection & Safety:** Automatic handle cleanup, `IDisposable` implementation, administrator privilege checking.
-- **Reading:** `ReadByte`, `ReadBool`, `ReadInt16`, `ReadUInt16`, `ReadInt32`, `ReadInt`, `ReadUInt32`, `ReadInt64`, `ReadUInt64`, `ReadFloat`, `ReadDouble`, `ReadString`, `ReadPointer`, `ReadPointerChain`
-- **Writing:** `WriteByte`, `WriteBool`, `WriteInt16`, `WriteUInt16`, `WriteInt32`, `WriteInt`, `WriteUInt32`, `WriteInt64`, `WriteUInt64`, `WriteFloat`, `WriteDouble`, `WriteString`
-- **Generics:** `Read<T>()` / `Write<T>()` for unmanaged structs (e.g., `Vector3`).
-- **Patching & Utilities:** `Nop(address, length)`, `Patch(address, bytes)`, `GetModuleInfo(moduleName)`
-- **Freezing:** Thread-safe constant memory writing via `FreezeMemory`, `FreezeInt`, `FreezeFloat`, `FreezeBool`, and `UnfreezeMemory`.
+### Engine (`Engine.cs`)[cite: 10]
+- **Process Connection & Safety:** Automatic handle cleanup, `IDisposable` implementation, administrator privilege checking[cite: 10].
+- **Properties:** `ProcessHandle`, `ModuleBase`, `ModuleSize`, `Is64Bit`, `External`, `Internal`, `PatternScanner`[cite: 10].
+- **Reading:** `ReadByte`, `ReadBool`, `ReadInt16`, `ReadUInt16`, `ReadInt32`, `ReadInt`, `ReadUInt32`, `ReadInt64`, `ReadUInt64`, `ReadFloat`, `ReadDouble`, `ReadMemory`, `ReadString`, `ReadPointer`, `ReadPointerChain`[cite: 10].
+- **Writing:** `WriteByte`, `WriteBool`, `WriteInt16`, `WriteUInt16`, `WriteInt32`, `WriteInt`, `WriteUInt32`, `WriteInt64`, `WriteUInt64`, `WriteFloat`, `WriteDouble`, `WriteString`[cite: 10].
+- **Generics:** `Read<T>()` / `Write<T>()` for unmanaged structs (e.g., `Vector3`)[cite: 10].
+- **Patching & Utilities:** `Nop(address, length)`, `Patch(address, bytes)`, `GetModuleInfo(moduleName)`[cite: 10].
+- **Memory Freezing:** Thread-safe constant memory writing via `FreezeMemory`, `FreezeInt`, `FreezeFloat`, `FreezeBool`, and `UnfreezeMemory`[cite: 10].
 
 <details>
-<summary><b>📁 Core Module</b></summary>
+<summary><b>📁 Core Module (<code>MemoryEngine.Core</code>)</b></summary>
 
-- **OffsetManager.cs**
-  - Thread-safe (`ConcurrentDictionary`) offset registry with runtime caching and JSON config support.
-  - Supports `Absolute`, `ModuleRelative`, `PointerChain`, `Pattern`, `InstructionRelative` (RIP-relative x64), and `DynamicExpression` (Lambda) types.
-  - Methods: `AddAbsolute`, `AddModuleRelative` (supports Hex strings), `AddPointerChain`, `AddPattern`, `AddInstructionRelative`, `AddStructMember`, `AddDynamic`, `Resolve`, `ResolveAllAsync`, `ExportToJson`, `LoadFromFile`.
-- **PatternScanner.cs**
-  - High-performance AOB signature scanning with wildcard mask support (`?` / `??`).
-  - Methods: `FindPattern(moduleName, pattern)`, `FindPattern(baseAddress, regionSize, pattern)`.
-- **MemoryAccess.cs**
-  - Native Win32 P/Invoke wrappers (`OpenProcess`, `ReadProcessMemory`, `WriteProcessMemory`, `VirtualAllocEx`, `VirtualProtectEx`, `VirtualFreeEx`, `CloseHandle`).
-- **HookInfo.cs**
-  - Data container for active detours (`HookAddress`, `CaveAddress`, `OriginalBytes`).
+- **OffsetManager.cs**[cite: 2]
+  - **Enums & Data Types:**
+    - `OffsetType`: `Absolute`, `ModuleRelative`, `PointerChain`, `Pattern`, `DynamicExpression`, `InstructionAuto` (smart x86/x64 mode), `InstructionAbsolute` (direct 32-bit pointer), `InstructionRelative` (RIP-relative x64)[cite: 2].
+    - `GameOffset`: Class containing `Name`, `Group`, `Type`, `ModuleName`, `Address`, `RawAddress`, `PointerChain`, `Pattern`, `Mask`, `PatternOffset`, `InstructionLength`, `ParentOffsetName`, `StructOffset`, and `DynamicResolver`[cite: 2].
+    - `OffsetResolvedEventArgs`: Contains `Name` and `Address`[cite: 2].
+  - **Methods & Events:**
+    - Event: `OnOffsetResolved`[cite: 2].
+    - Registration: `Add`, `AddAbsolute`, `AddModuleRelative` (supports Hex/Decimal strings), `AddCustom`, `AddPointerChain`, `AddPattern`, `AddInstructionAuto`, `AddInstructionRelative`, `AddInstructionAbsolute`, `AddStructMember`, `AddDynamic`[cite: 2].
+    - Lookup & Grouping: `Remove`, `ResolveGroup`, `ValidateOffsets`, `GetNamesByGroup`, `Get`, `TryGetResolved`, `Contains`, `InvalidateCache`[cite: 2].
+    - Resolution: `Resolve`, `ResolveAllAsync` (parallel background resolution with progress reporting)[cite: 2].
+    - Serialization: `ExportToJson`, `SaveToFile`, `LoadFromJson`, `LoadFromFile`[cite: 2].
+- **PatternScanner.cs**[cite: 3]
+  - Signature scanning with wildcard support (`?` / `??`)[cite: 3].
+  - Methods: `FindPattern(moduleName, patternString)`, `FindPattern(baseAddress, regionSize, patternString)`, `FindPattern(regionSize, patternString)`[cite: 3].
+- **CacheManager.cs**[cite: 4]
+  - Thread-safe memory caching layer based on `ConcurrentDictionary` and `TickCount64`[cite: 4].
+  - Methods: `GetOrUpdate<T>(key, updateFunc, overrideExpirationMs)`, `Invalidate(key)`[cite: 4].
+- **InputSystem.cs**[cite: 7]
+  - Native key state queries via `user32.dll` `GetAsyncKeyState`[cite: 7].
+  - Methods: `IsKeyDown(virtualKeyCode)`, `IsMenuToggled(menuKeyCode)`[cite: 7].
+- **MemoryAccess.cs**[cite: 1]
+  - Win32 API P/Invoke imports (`OpenProcess`, `ReadProcessMemory`, `WriteProcessMemory`, `VirtualAllocEx`, `VirtualProtectEx`, `VirtualFreeEx`, `CloseHandle`)[cite: 1].
+  - Win32 Constants: `PROCESS_ALL_ACCESS`, `MEM_COMMIT`, `MEM_RESERVE`, `PAGE_EXECUTE_READWRITE`, `MEM_RELEASE`, `PAGE_READWRITE`[cite: 1].
+- **HookInfo.cs**[cite: 6]
+  - Class holding detour state: `HookAddress`, `CaveAddress`, `OriginalBytes`[cite: 6].
 </details>
 
 <details>
-<summary><b>📁 External Module</b></summary>
+<summary><b>📁 External Module (<code>MemoryEngine.External</code>)</b></summary>
 
-- **ExternalHooking.cs**
-  - Out-of-process assembly detours and code caves using the **Iced** x86/x64 assembler.
-  - Methods: `ApplyDetour`, `ApplyAobDetour`, `GetOrCreateCave`, `RegisterSymbol`, `AllocateVariable<T>`, `InjectJMP`, `ReturnEarly`, `RemoveHook`, `RemoveAll`.
+- **ExternalHooking.cs & StreamCodeWriter.cs**[cite: 8]
+  - Out-of-process assembly injection and hooking using the **Iced** x86/x64 assembler[cite: 8].
+  - **Memory & Pointers:** `Dereference(baseAddress, offsets)`[cite: 8].
+  - **String Manipulation:** `ReadString(address, maxLength, encoding)`, `WriteString(address, text, encoding)`[cite: 8].
+  - **NOPing & Patching:** `Nop(patchName, address, length)`, `ApplyPatch(patchName, address, newBytes)`, `RestorePatch(patchName)`[cite: 8].
+  - **Detours (Iced):** `ApplyDetour`, `ApplyAobDetour`[cite: 8].
+  - **Shellcode Execution:** `ExecuteShellcode(buildCode)` (executes dynamic assembly instructions in remote thread)[cite: 8].
+  - **Symbol & Memory Management:** `GetOrCreateCave`, `RegisterSymbol`, `GetSymbolAddress`, `AllocateVariable<T>`, `InjectJMP`, `ReturnEarly`, `RemoveHook`, `RemoveAll`, `WriteMemory`, `FreeCave`[cite: 8].
 </details>
 
 <details>
-<summary><b>📁 Internal Module</b></summary>
+<summary><b>📁 Internal Module (<code>MemoryEngine.Internal</code>)</b></summary>
 
-- **InternalHooking.cs & SharedMemoryBridge.cs**
-  - In-process hook management using **MinHook** and **Iced**.
-  - Background event loop cave execution via shared memory bridges.
-  - Methods: `ApplyStandardHook<T>`, `ApplyCodeCave`, `ApplyEventCave`, `SharedMemoryBridge.Read()`, `SharedMemoryBridge.ResetFlag()`.
+- **InternalHooking.cs & SharedMemoryBridge.cs**[cite: 9]
+  - In-process internal hooking using **MinHook** and **Iced**[cite: 9].
+  - **UnsafeMemory Class:** Fast C++ style memory pointers: `UnsafeMemory.Read<T>`, `UnsafeMemory.Write<T>`, `UnsafeMemory.ReadPointer`[cite: 9].
+  - **Enums & Structs:** `MemoryProtection`, `AllocationType`, `FreeType`, `SharedData` (`Flag`, `Entity`)[cite: 9].
+  - **SharedMemoryBridge Class:** Allocates executable shared memory for IPC/Event transfer (`Address`, `Read()`, `ResetFlag()`, `Dispose()`)[cite: 9].
+  - **InternalHooking Class:** `ApplyStandardHook<T>`, `ApplyCodeCave`, `ApplyEventCave`, `Dispose()`[cite: 9].
 </details>
 
 <details>
-<summary><b>📁 Game Module</b></summary>
+<summary><b>📁 Injector Module (<code>Injector</code>)</b></summary>
 
-- **ViewMatrix.cs**
-  - Allocation-free 4x4 matrix projection for 3D World to 2D Screen transformations (`WorldToScreen`).
-  - Supports Column-Major layout, Depth range adjustment, and Y-axis inversion via `MatrixSettings`.
-- **EntityManager.cs (`Entity`)**
-  - Universal entity data model with position vector, health, pitch/yaw, and dynamic `CustomData` dictionary extensions.
-- **AimbotMath.cs**
-  - Calculates Pitch & Yaw angles to target entities. Includes frame-velocity target prediction (`CalculateAngle`, `ClearHistory`).
-- **GameFunctionCaller.cs**
-  - Remote function execution via thread creation (`CallVoidFunction`).
+- **DllInjector.cs**[cite: 5]
+  - Native DLL injection via `VirtualAllocEx`, `WriteProcessMemory`, `GetProcAddress("LoadLibraryA")`, and `CreateRemoteThread`[cite: 5].
+  - Method: `DllInjector.Inject(processName, dllPath)`[cite: 5].
 </details>
 
 <details>
-<summary><b>📁 Overlay Module</b></summary>
+<summary><b>📁 Game Module (<code>MemoryEngine.Game</code> & <code>MemoryEngine</code>)</b></summary>
 
-- **ESP.cs (ESPOverlay)**
-  - Hardware-accelerated, click-through, transparent Windows Forms overlay running on a background STA thread.
-  - Thread-safe data transfer via `EspData.LockObject` and `EspData.Enemies`.
-  - Configurable rendering via `EnemyScreenData` (`HeadPos`, `FeetPos`, `Distance`, `BoxColor`, `CustomText`).
+- **ViewMatrix.cs**[cite: 14]
+  - `MatrixSettings`: Projection parameters (`IsColumnMajor`, `IsZeroToOneRange`, `InvertY`)[cite: 14].
+  - `ViewMatrix`: Unsafe fixed array `float m[16]` matrix structure with GC-free `WorldToScreen(pos, out screenPos, width, height)` transformation[cite: 14].
+- **EntityManager.cs (`Entity`)**[cite: 12]
+  - Entity model (`Address`, `Health`, `X`, `Y`, `Z`, `Position`, `Team`, `Name`, `Pitch`, `Yaw`, `IsAlive`)[cite: 12].
+  - Dynamic extensions: `CustomData` dictionary, `GetCustom<T>(key, defaultValue)`, `SetCustom<T>(key, value)`[cite: 12].
+- **AimbotMath.cs**[cite: 15]
+  - Aim angle calculation: `CalculateAngle(localPos, targetPos, entityKey, prediction, zOffset)` with frame velocity target prediction and `ClearHistory()`[cite: 15].
+- **GameFunctionCaller.cs**[cite: 13]
+  - `CallVoidFunction(functionAddress)` via remote thread creation[cite: 13].
+</details>
+
+<details>
+<summary><b>📁 Overlay Module (<code>MemoryEngine.Overlay</code>)</b></summary>
+
+- **ESP.cs (`ESP`, `EnemyScreenData`, `EspData`)**[cite: 11]
+  - Hardware-accelerated, transparent, click-through WinForms overlay (`WS_EX_TRANSPARENT` / `WS_EX_LAYERED`)[cite: 11].
+  - Background STA thread launcher: `ESP.Launch()`[cite: 11].
+  - Thread-safe rendering synchronization via `EspData.LockObject` and `EspData.Enemies`[cite: 11].
+  - `EnemyScreenData`: `HeadPos`, `FeetPos`, `Distance`, `BoxColor`, `CustomText`[cite: 11].
 </details>
 
 ---
 
 ## 🚀 Usage Examples
 
-### Initialization & Dynamic Offset Resolution
+### 1. Engine Initialization, Memory Freezing & Caching
 
 ```csharp
 using System;
 using MemoryEngine;
 using MemoryEngine.Core;
 
-// 1. Setup OffsetManager with fluent registration
+// Setup OffsetManager with fluent registration
 var offsets = new OffsetManager()
     .AddPointerChain("Health", "ac_client.exe", "0x109B74", new[] { 0xF8 })
     .AddModuleRelative("LocalPlayer", "ac_client.exe", "0x109B74")
-    .AddPattern("AmmoPattern", "ac_client.exe", "FF 0E 5F 5E 8B E5 5D C3");
+    .AddInstructionAuto("AmmoInst", "ac_client.exe", "FF 0E 5F 5E 8B E5 5D C3", patternOffset: 0, instructionLength: 2);
 
-// 2. Attach Engine
+// Attach Engine
 using var engine = new Engine("ac_client");
 
-// 3. Resolve runtime target addresses
+// Resolve target addresses
 IntPtr healthAddr = offsets.Resolve("Health", engine);
 
-// 4. Read & Write
+// Read, write & freeze memory
 int currentHealth = engine.ReadInt(healthAddr);
 engine.WriteInt(healthAddr, 100);
-
-// 5. Freeze memory value
 engine.FreezeInt(healthAddr, 100);
+
+// Use CacheManager for high-frequency loop performance (~60 updates/sec)
+var cache = new CacheManager(defaultExpirationMs: 16);
+int cachedHealth = cache.GetOrUpdate("player_hp", () => engine.ReadInt(healthAddr));
 ```
 
-### Hardware Overlay Rendering (ESP)
+### 2. Aimbot Angle Calculation & WorldToScreen Projection
 
 ```csharp
-using System.Collections.Generic;
-using System.Drawing;
 using System.Numerics;
-using MemoryEngine.Overlay;
+using MemoryEngine.Game;
 
-// Launch transparent overlay thread
-ESP.Launch();
-
-// Inside your main game loop: Update rendered frames
-var frameData = new List<EnemyScreenData>
+// Setup ViewMatrix
+var matrix = new ViewMatrix
 {
-    new EnemyScreenData
-    {
-        HeadPos = new Vector2(960, 300),
-        FeetPos = new Vector2(960, 500),
-        Distance = 12.5f,
-        BoxColor = Color.Red,
-        CustomText = "Enemy [100 HP]"
-    }
+    Settings = new MatrixSettings { IsColumnMajor = true, InvertY = true }
 };
 
-lock (EspData.LockObject)
+Vector3 localPlayerPos = new Vector3(10f, 15f, 2f);
+Vector3 enemyPos = new Vector3(25f, 30f, 2f);
+
+// Calculate Aimbot Pitch & Yaw with movement prediction
+var (pitch, yaw) = AimbotMath.CalculateAngle(localPlayerPos, enemyPos, entityKey: (IntPtr)0x12345, prediction: true);
+
+// Project 3D World Position to 2D Screen Coordinates
+if (matrix.WorldToScreen(enemyPos, out Vector2 screenPos, width: 1920, height: 1080))
 {
-    EspData.Enemies = frameData;
+    Console.WriteLine($"Enemy Screen X: {screenPos.X}, Y: {screenPos.Y}");
 }
+```
+
+### 3. External Shellcode Execution & Code Caves (Iced)
+
+```csharp
+using MemoryEngine;
+using static Iced.Intel.AssemblerRegisters;
+
+using var engine = new Engine("ac_client");
+
+// Allocate variable inside target process
+IntPtr customVar = engine.External.AllocateVariable("MyCounter", 1337);
+
+// Execute custom assembly remotely
+engine.External.ExecuteShellcode(asm =>
+{
+    asm.mov(eax, 100);
+    asm.add(eax, 200);
+});
+```
+
+### 4. Input System & DLL Injection
+
+```csharp
+using Injector;
+using MemoryEngine.Core;
+
+// Check hotkeys (e.g., Insert key for menu toggling)
+if (InputSystem.IsMenuToggled(0x2D)) // 0x2D = VK_INSERT
+{
+    Console.WriteLine("Menu Toggled!");
+}
+
+// Inject internal module into target process
+bool injected = DllInjector.Inject("ac_client", @"C:\Hacks\InternalPayload.dll");
 ```
 
 ---

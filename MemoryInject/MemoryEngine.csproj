@@ -7,9 +7,9 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<PlatformTarget>AnyCPU</PlatformTarget>
-		<Version>1.4.9</Version>
+		<Version>1.5.0</Version>
 		<Authors>Trofline</Authors>
-		<Description>Memory Manipulation Engine with ICED (assembly) Support, ViewMatrix, EntityManager, Hooking, Pattern/AOB-Scanning, ESP, Aimbot and many more. It is a GameHack Framework and can be used both Internal and External hacks</Description>
+		<Description>Memory Manipulation Engine with assembly(ICED) Support, ViewMatrix, EntityManager, Hooking, Pattern/AOB-Scanning,DLLInjection, ESP, Aimbot and many more. It is a GameHack Framework and can be used both Internal and External hacks</Description>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<Title>MemoryEngine</Title>
 		<Copyright>Copyright (c) 2026 Trofline</Copyright>
@@ -18,6 +18,8 @@
 		<PackageProjectUrl></PackageProjectUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<RepositoryUrl>https://github.com/Trofline/MemoryEngine</RepositoryUrl>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
 		<RepositoryType>git</RepositoryType>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
 		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
@@ -39,7 +41,10 @@
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
 		</None>
-		<!-- DAS HIER HAT GEFEHLT: -->
+		<None Include="Documentation.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
 		<None Include="README.md">
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
@@ -53,6 +58,7 @@
 	<ItemGroup>
 		<PackageReference Include="Iced" Version="1.21.0" />
 		<PackageReference Include="MinHook.NET" Version="1.1.2" />
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
 	</ItemGroup>
 
 </Project>
