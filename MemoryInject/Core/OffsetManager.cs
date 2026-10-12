@@ -12,17 +12,18 @@ namespace MemoryEngine.Core
 {
     public enum OffsetType
     {
-        Absolute,          // Feste Adresse
-        ModuleRelative,    // ModuleBase + Offset
-        PointerChain,      // ModuleBase + BaseOffset -> Multilevel Pointer Path
-        Pattern,           // Array of Bytes (AOB) Scan
-        DynamicExpression, // Dynamische Berechnung via Lambda/Funktion
-        InstructionRelative // RIP-Relative Adressierung (z. B. MOV RAX, [RIP + 0x1234])
+        Absolute,           // Statische absolute Adresse
+        ModuleRelative,     // Modul-Basis + statischer Offset
+        PointerChain,       // Modul-Basis + Basis-Offset -> Multi-Level Pointer Pfad
+        Pattern,            // Sucht dynamisch nach AOB (gibt die genaue Adresse des Patterns zurück)
+        DynamicExpression,  // Wird zur Laufzeit über einen Lambda-Ausdruck/Delegate aufgelöst
+
+        // --- Neue intelligente Instruktions-Typen ---
+        InstructionAuto,    // SMART: Nutzt automatisch Absolute für 32-Bit und Relative für 64-Bit!
+        InstructionAbsolute,// Erzwungen Absolut (Liest die 4 Bytes direkt als Pointer, typisch für x86/32-Bit)
+        InstructionRelative // Erzwungen Relativ (RIP-Math: Addr + Length + Offset, typisch für x64/64-Bit)
     }
 
-    /// <summary>
-    /// Event-Argumente für Änderungen an gelösten Offsets (z. B. nach neuem Pattern-Scan)
-    /// </summary>
     public class OffsetResolvedEventArgs : EventArgs
     {
         public string Name { get; }
@@ -38,14 +39,13 @@ namespace MemoryEngine.Core
     public class GameOffset
     {
         public string Name { get; set; } = string.Empty;
-        public string Group { get; set; } = "Default"; // Gruppierung (z. B. "Player", "EntityList")
+        public string Group { get; set; } = "Default";
         public OffsetType Type { get; set; }
         public string ModuleName { get; set; } = string.Empty;
 
         [JsonIgnore]
         public IntPtr Address { get; set; } = IntPtr.Zero;
 
-        // JSON-Hilfseigenschaft für die Serialisierung von IntPtr
         public long RawAddress
         {
             get => Address.ToInt64();
@@ -54,15 +54,13 @@ namespace MemoryEngine.Core
 
         public int[] PointerChain { get; set; } = Array.Empty<int>();
         public string Pattern { get; set; } = string.Empty;
-        public string Mask { get; set; } = string.Empty; // Optional für Masken-basierte Scans (xx??xx)
-        public int PatternOffset { get; set; } = 0;      // Additiver Offset nach Pattern-Match
-        public int InstructionLength { get; set; } = 0; // Für RIP-Relative Offsets (x64)
+        public string Mask { get; set; } = string.Empty;
+        public int PatternOffset { get; set; } = 0;
+        public int InstructionLength { get; set; } = 0;
 
-        // Nested Struct Offsets (z. B. PlayerBase + HealthOffset)
         public string ParentOffsetName { get; set; } = string.Empty;
         public int StructOffset { get; set; } = 0;
 
-        // Dynamische Evaluation zur Laufzeit
         [JsonIgnore]
         public Func<Engine, IntPtr>? DynamicResolver { get; set; }
     }
@@ -74,7 +72,7 @@ namespace MemoryEngine.Core
 
         public event EventHandler<OffsetResolvedEventArgs>? OnOffsetResolved;
 
-        #region Fluent Builder & Add-Methoden
+        #region Fluent Builder & Add Methods
 
         public OffsetManager Add(GameOffset offset)
         {
@@ -89,7 +87,6 @@ namespace MemoryEngine.Core
         public OffsetManager AddModuleRelative(string name, string moduleName, IntPtr offset, string group = "Default")
             => Add(new GameOffset { Name = name, Type = OffsetType.ModuleRelative, ModuleName = moduleName, Address = offset, Group = group });
 
-        // Overload für String-Hex-Offsets ("0x1234" oder "1234")
         public OffsetManager AddModuleRelative(string name, string moduleName, string hexOffset, string group = "Default")
         {
             long parsedOffset = hexOffset.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
@@ -99,10 +96,64 @@ namespace MemoryEngine.Core
             return AddModuleRelative(name, moduleName, new IntPtr(parsedOffset), group);
         }
 
+        public OffsetManager AddCustom(string name, int value, string group = "Default")
+        {
+            return Add(new GameOffset
+            {
+                Name = name,
+                Type = OffsetType.Absolute,
+                Address = new IntPtr(value),
+                Group = group
+            });
+        }
+
+        public bool Remove(string name)
+        {
+            bool removed = _offsets.TryRemove(name, out _);
+            InvalidateCache(name);
+            return removed;
+        }
+
+        public Dictionary<string, IntPtr> ResolveGroup(string group, Engine engine, bool forceRefresh = false)
+        {
+            var groupResults = new Dictionary<string, IntPtr>();
+
+            foreach (var kvp in _offsets.Where(o => o.Value.Group.Equals(group, StringComparison.OrdinalIgnoreCase)))
+            {
+                IntPtr resolved = Resolve(kvp.Key, engine, forceRefresh);
+                if (resolved != IntPtr.Zero)
+                {
+                    groupResults[kvp.Key] = resolved;
+                }
+            }
+
+            return groupResults;
+        }
+
+        public bool ValidateOffsets(Engine engine, IEnumerable<string>? offsetNames = null)
+        {
+            var targets = offsetNames ?? _offsets.Keys;
+
+            foreach (var name in targets)
+            {
+                if (Resolve(name, engine, forceRefresh: true) == IntPtr.Zero)
+                {
+                    return false; // Mindestens ein Offset konnte nicht gefunden werden!
+                }
+            }
+            return true;
+        }
+
+        public List<string> GetNamesByGroup(string group)
+        {
+            return _offsets.Where(o => o.Value.Group.Equals(group, StringComparison.OrdinalIgnoreCase))
+                           .Select(o => o.Key)
+                           .ToList();
+        }
+
         public OffsetManager AddPointerChain(string name, string moduleName, IntPtr baseOffset, int[] chain, string group = "Default")
             => Add(new GameOffset { Name = name, Type = OffsetType.PointerChain, ModuleName = moduleName, Address = baseOffset, PointerChain = chain, Group = group });
 
-        // Overload für PointerChain mit String-Hex BaseOffset
         public OffsetManager AddPointerChain(string name, string moduleName, string hexBaseOffset, int[] chain, string group = "Default")
         {
             long parsedOffset = hexBaseOffset.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
@@ -115,12 +166,20 @@ namespace MemoryEngine.Core
         public OffsetManager AddPattern(string name, string moduleName, string pattern, int patternOffset = 0, string mask = "", int instructionLength = 0, string group = "Default")
             => Add(new GameOffset { Name = name, Type = OffsetType.Pattern, ModuleName = moduleName, Pattern = pattern, Mask = mask, PatternOffset = patternOffset, InstructionLength = instructionLength, Group = group });
 
-        // Overload für Pattern ohne expliziten Modulnamen (Standard: leeres Modul/Hauptmodul)
         public OffsetManager AddPattern(string name, string pattern, int patternOffset = 0, string group = "Default")
             => AddPattern(name, string.Empty, pattern, patternOffset: patternOffset, group: group);
 
-        public OffsetManager AddInstructionRelative(string name, string moduleName, string pattern, int ripOffsetPosition, int instructionLength, string group = "Default")
-            => Add(new GameOffset { Name = name, Type = OffsetType.InstructionRelative, ModuleName = moduleName, Pattern = pattern, PatternOffset = ripOffsetPosition, InstructionLength = instructionLength, Group = group });
+        // SMART MODE: Wählt automatisch zwischen 32-Bit (Absolute) und 64-Bit (Relative)
+        public OffsetManager AddInstructionAuto(string name, string moduleName, string pattern, int patternOffset, int instructionLength, string group = "Default")
+            => Add(new GameOffset { Name = name, Type = OffsetType.InstructionAuto, ModuleName = moduleName, Pattern = pattern, PatternOffset = patternOffset, InstructionLength = instructionLength, Group = group });
+
+        // ERZWUNGEN RELATIV: Für 64-Bit (RIP-Math) oder 32-Bit Jumps/Calls
+        public OffsetManager AddInstructionRelative(string name, string moduleName, string pattern, int patternOffset, int instructionLength, string group = "Default")
+            => Add(new GameOffset { Name = name, Type = OffsetType.InstructionRelative, ModuleName = moduleName, Pattern = pattern, PatternOffset = patternOffset, InstructionLength = instructionLength, Group = group });
+
+        // ERZWUNGEN ABSOLUT: Für direkte 32-Bit Pointer
+        public OffsetManager AddInstructionAbsolute(string name, string moduleName, string pattern, int patternOffset, string group = "Default")
+            => Add(new GameOffset { Name = name, Type = OffsetType.InstructionAbsolute, ModuleName = moduleName, Pattern = pattern, PatternOffset = patternOffset, Group = group });
 
         public OffsetManager AddStructMember(string name, string parentOffsetName, int structOffset, string group = "Default")
             => Add(new GameOffset { Name = name, ParentOffsetName = parentOffsetName, StructOffset = structOffset, Group = group });
@@ -134,13 +193,16 @@ namespace MemoryEngine.Core
 
         public IntPtr Resolve(string name, Engine engine, bool forceRefresh = false)
         {
-            if (!forceRefresh && _resolvedCache.TryGetValue(name, out var cachedAddress) && cachedAddress != IntPtr.Zero)
+            var offset = Get(name);
+
+            // Pointer chains and dynamic expressions shift during runtime; do not cache permanently
+            bool shouldCache = offset.Type != OffsetType.PointerChain && offset.Type != OffsetType.DynamicExpression;
+
+            if (!forceRefresh && shouldCache && _resolvedCache.TryGetValue(name, out var cachedAddress) && cachedAddress != IntPtr.Zero)
                 return cachedAddress;
 
-            var offset = Get(name);
             IntPtr resolvedPtr = IntPtr.Zero;
 
-            // 1. Auflösung abhängiger Struct-Member Offsets
             if (!string.IsNullOrEmpty(offset.ParentOffsetName))
             {
                 IntPtr parentAddr = Resolve(offset.ParentOffsetName, engine, forceRefresh);
@@ -151,7 +213,6 @@ namespace MemoryEngine.Core
             }
             else
             {
-                // 2. Reguläre Typ-Auflösung
                 resolvedPtr = offset.Type switch
                 {
                     OffsetType.Absolute =>
@@ -166,6 +227,12 @@ namespace MemoryEngine.Core
                     OffsetType.Pattern =>
                         ResolvePattern(engine, offset),
 
+                    OffsetType.InstructionAuto =>
+                        ResolveInstructionAuto(engine, offset),
+
+                    OffsetType.InstructionAbsolute =>
+                        ResolveInstructionAbsolute(engine, offset),
+
                     OffsetType.InstructionRelative =>
                         ResolveInstructionRelative(engine, offset),
 
@@ -176,7 +243,7 @@ namespace MemoryEngine.Core
                 };
             }
 
-            if (resolvedPtr != IntPtr.Zero)
+            if (resolvedPtr != IntPtr.Zero && shouldCache)
             {
                 _resolvedCache[name] = resolvedPtr;
                 OnOffsetResolved?.Invoke(this, new OffsetResolvedEventArgs(name, resolvedPtr));
@@ -221,23 +288,43 @@ namespace MemoryEngine.Core
 
         private IntPtr ResolvePattern(Engine engine, GameOffset offset)
         {
-            // Greift direkt auf die (string moduleName, string patternString) Überladung zu.
-            // Wildcards ('?' und '??') werden vom PatternScanner automatisch verarbeitet.
             IntPtr found = engine.PatternScanner.FindPattern(offset.ModuleName, offset.Pattern);
-
             if (found == IntPtr.Zero) return IntPtr.Zero;
 
             return IntPtr.Add(found, offset.PatternOffset);
         }
 
-        private IntPtr ResolveInstructionRelative(Engine engine, GameOffset offset)
+        // --- Die neuen smarten Instruktions-Auflöser ---
+
+        private IntPtr ResolveInstructionAuto(Engine engine, GameOffset offset)
         {
-            // Liest 32-Bit RIP-relative Offsets (x64 Instruktionen)
+            // Smart Check: 64-Bit nutzt Relativ, 32-Bit nutzt Absolut
+            if (engine.Is64Bit)
+                return ResolveInstructionRelative(engine, offset);
+            else
+                return ResolveInstructionAbsolute(engine, offset);
+        }
+
+        private IntPtr ResolveInstructionAbsolute(Engine engine, GameOffset offset)
+        {
             IntPtr instructionAddr = engine.PatternScanner.FindPattern(offset.ModuleName, offset.Pattern);
             if (instructionAddr == IntPtr.Zero) return IntPtr.Zero;
 
-            IntPtr ripOffsetLocation = IntPtr.Add(instructionAddr, offset.PatternOffset);
-            int relativeOffset = engine.Read<int>(ripOffsetLocation);
+            // Für 32-Bit: Wir lesen den Speicherwert direkt als absolute Adresse aus
+            IntPtr valueLocation = IntPtr.Add(instructionAddr, offset.PatternOffset);
+            uint absoluteAddress = engine.ReadUInt32(valueLocation);
+
+            return new IntPtr(absoluteAddress);
+        }
+
+        private IntPtr ResolveInstructionRelative(Engine engine, GameOffset offset)
+        {
+            IntPtr instructionAddr = engine.PatternScanner.FindPattern(offset.ModuleName, offset.Pattern);
+            if (instructionAddr == IntPtr.Zero) return IntPtr.Zero;
+
+            // Für 64-Bit (RIP): Instruktions-Basis + Länge + ausgelesener relativer Offset
+            IntPtr valueLocation = IntPtr.Add(instructionAddr, offset.PatternOffset);
+            int relativeOffset = engine.Read<int>(valueLocation);
 
             long nextInstructionAddr = instructionAddr.ToInt64() + offset.InstructionLength;
             return new IntPtr(nextInstructionAddr + relativeOffset);
@@ -252,7 +339,7 @@ namespace MemoryEngine.Core
             if (_offsets.TryGetValue(name, out var offset))
                 return offset;
 
-            throw new KeyNotFoundException($"Offset '{name}' wurde im OffsetManager nicht gefunden.");
+            throw new KeyNotFoundException($"Offset '{name}' was not found in the OffsetManager.");
         }
 
         public bool TryGetResolved(string name, out IntPtr address) => _resolvedCache.TryGetValue(name, out address);
@@ -269,7 +356,7 @@ namespace MemoryEngine.Core
 
         #endregion
 
-        #region Import & Export (JSON Engine Configs)
+        #region Import & Export
 
         public string ExportToJson(bool indented = true)
         {

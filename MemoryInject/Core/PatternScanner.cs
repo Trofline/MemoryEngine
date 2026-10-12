@@ -20,11 +20,13 @@ namespace MemoryEngine.Core
 
         public IntPtr FindPattern(IntPtr baseAddress, int regionSize, string patternString)
         {
+            // Parse pattern once outside the loop
             string[] parts = patternString.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-            byte[] pattern = new byte[parts.Length];
-            bool[] mask = new bool[parts.Length];
+            int patternLength = parts.Length;
+            byte[] pattern = new byte[patternLength];
+            bool[] mask = new bool[patternLength];
 
-            for (int i = 0; i < parts.Length; i++)
+            for (int i = 0; i < patternLength; i++)
             {
                 if (parts[i] == "??" || parts[i] == "?")
                 {
@@ -40,10 +42,11 @@ namespace MemoryEngine.Core
             byte[] buffer = new byte[regionSize];
             MemoryAccess.ReadProcessMemory(_engine.ProcessHandle, baseAddress, buffer, (uint)regionSize, out _);
 
-            for (int i = 0; i < buffer.Length - pattern.Length; i++)
+            int maxLoop = buffer.Length - patternLength;
+            for (int i = 0; i <= maxLoop; i++)
             {
                 bool match = true;
-                for (int j = 0; j < pattern.Length; j++)
+                for (int j = 0; j < patternLength; j++)
                 {
                     if (mask[j] && buffer[i + j] != pattern[j])
                     {

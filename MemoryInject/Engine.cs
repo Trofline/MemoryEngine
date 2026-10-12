@@ -30,16 +30,21 @@ namespace MemoryEngine
         public Engine(string processName, bool force32Bit = false)
         {
             Process[] processes = Process.GetProcessesByName(processName);
-            if (processes.Length == 0) throw new Exception($"Process '{processName}' not found!");
+            if (processes.Length == 0)
+                throw new InvalidOperationException($"Process '{processName}' not found!");
 
             _proc = processes[0];
             ProcessModule? module = _proc.MainModule;
 
-            if (module == null) throw new Exception("Main Module not found!");
+            if (module == null)
+                throw new InvalidOperationException("Main Module not found!");
 
             ModuleBase = module.BaseAddress;
             ModuleSize = module.ModuleMemorySize;
+
             ProcessHandle = MemoryAccess.OpenProcess(MemoryAccess.PROCESS_ALL_ACCESS, false, _proc.Id);
+            if (ProcessHandle == IntPtr.Zero)
+                throw new UnauthorizedAccessException("OpenProcess failed! Please run the application with Administrator privileges.");
 
             Is64Bit = !force32Bit && Is64BitProcess(_proc);
 
@@ -63,9 +68,7 @@ namespace MemoryEngine
             return (IntPtr.Zero, 0);
         }
 
-        // ==========================================
-        // UTILITIES (NOP & PATCH)
-        // ==========================================
+        #region Memory Utilities
 
         public void Nop(IntPtr address, int length)
         {
@@ -80,9 +83,9 @@ namespace MemoryEngine
             MemoryAccess.VirtualProtectEx(ProcessHandle, address, (uint)bytes.Length, oldProtect, out _);
         }
 
-        // ==========================================
-        // LESE-METHODEN (ALL TYPES)
-        // ==========================================
+        #endregion
+
+        #region Read Methods
 
         public byte ReadByte(IntPtr address)
         {
@@ -91,10 +94,7 @@ namespace MemoryEngine
             return buffer[0];
         }
 
-        public bool ReadBool(IntPtr address)
-        {
-            return ReadByte(address) != 0;
-        }
+        public bool ReadBool(IntPtr address) => ReadByte(address) != 0;
 
         public short ReadInt16(IntPtr address)
         {
@@ -117,11 +117,7 @@ namespace MemoryEngine
             return BitConverter.ToInt32(buffer, 0);
         }
 
-        // ALIAS FÜR EXTERNEN ESP-AUFRUF
-        public int ReadInt(IntPtr address)
-        {
-            return ReadInt32(address);
-        }
+        public int ReadInt(IntPtr address) => ReadInt32(address);
 
         public uint ReadUInt32(IntPtr address)
         {
@@ -167,7 +163,7 @@ namespace MemoryEngine
 
         public string ReadString(IntPtr address, int length, Encoding? encoding = null)
         {
-            if (encoding == null) encoding = Encoding.UTF8;
+            encoding ??= Encoding.UTF8;
             byte[] buffer = ReadMemory(address, length);
             string text = encoding.GetString(buffer);
             int nullIndex = text.IndexOf('\0');
@@ -193,76 +189,32 @@ namespace MemoryEngine
             return IntPtr.Add(currentAddress, offsets[offsets.Length - 1]);
         }
 
-        // ==========================================
-        // SCHREIB-METHODEN (ALL TYPES)
-        // ==========================================
+        #endregion
 
-        public void WriteByte(IntPtr address, byte value)
-        {
-            Patch(address, new byte[] { value });
-        }
+        #region Write Methods
 
-        public void WriteBool(IntPtr address, bool value)
-        {
-            WriteByte(address, (byte)(value ? 1 : 0));
-        }
-
-        public void WriteInt16(IntPtr address, short value)
-        {
-            Patch(address, BitConverter.GetBytes(value));
-        }
-
-        public void WriteUInt16(IntPtr address, ushort value)
-        {
-            Patch(address, BitConverter.GetBytes(value));
-        }
-
-        public void WriteInt32(IntPtr address, int value)
-        {
-            Patch(address, BitConverter.GetBytes(value));
-        }
-
-        // ALIAS FÜR EXTERNEN ESP-AUFRUF
-        public void WriteInt(IntPtr address, int value)
-        {
-            WriteInt32(address, value);
-        }
-
-        public void WriteUInt32(IntPtr address, uint value)
-        {
-            Patch(address, BitConverter.GetBytes(value));
-        }
-
-        public void WriteInt64(IntPtr address, long value)
-        {
-            Patch(address, BitConverter.GetBytes(value));
-        }
-
-        public void WriteUInt64(IntPtr address, ulong value)
-        {
-            Patch(address, BitConverter.GetBytes(value));
-        }
-
-        public void WriteFloat(IntPtr address, float value)
-        {
-            Patch(address, BitConverter.GetBytes(value));
-        }
-
-        public void WriteDouble(IntPtr address, double value)
-        {
-            Patch(address, BitConverter.GetBytes(value));
-        }
+        public void WriteByte(IntPtr address, byte value) => Patch(address, new byte[] { value });
+        public void WriteBool(IntPtr address, bool value) => WriteByte(address, (byte)(value ? 1 : 0));
+        public void WriteInt16(IntPtr address, short value) => Patch(address, BitConverter.GetBytes(value));
+        public void WriteUInt16(IntPtr address, ushort value) => Patch(address, BitConverter.GetBytes(value));
+        public void WriteInt32(IntPtr address, int value) => Patch(address, BitConverter.GetBytes(value));
+        public void WriteInt(IntPtr address, int value) => WriteInt32(address, value);
+        public void WriteUInt32(IntPtr address, uint value) => Patch(address, BitConverter.GetBytes(value));
+        public void WriteInt64(IntPtr address, long value) => Patch(address, BitConverter.GetBytes(value));
+        public void WriteUInt64(IntPtr address, ulong value) => Patch(address, BitConverter.GetBytes(value));
+        public void WriteFloat(IntPtr address, float value) => Patch(address, BitConverter.GetBytes(value));
+        public void WriteDouble(IntPtr address, double value) => Patch(address, BitConverter.GetBytes(value));
 
         public void WriteString(IntPtr address, string text, Encoding? encoding = null)
         {
-            if (encoding == null) encoding = Encoding.UTF8;
+            encoding ??= Encoding.UTF8;
             byte[] data = encoding.GetBytes(text + "\0");
             Patch(address, data);
         }
 
-        // ==========================================
-        // GENERISCHES POWER-FEATURE (FÜR STRUKTUREN)
-        // ==========================================
+        #endregion
+
+        #region Generic Struct Access
 
         public T Read<T>(IntPtr address) where T : unmanaged
         {
@@ -299,9 +251,9 @@ namespace MemoryEngine
             Patch(address, buffer);
         }
 
-        // ==========================================
-        // CHEAT ENGINE FREEZE SYSTEM
-        // ==========================================
+        #endregion
+
+        #region Value Freezing System
 
         public void FreezeMemory(IntPtr address, byte[] value)
         {
@@ -324,10 +276,7 @@ namespace MemoryEngine
         {
             lock (_freezeLock)
             {
-                if (_frozenValues.ContainsKey(address))
-                {
-                    _frozenValues.Remove(address);
-                }
+                _frozenValues.Remove(address);
             }
         }
 
@@ -357,6 +306,8 @@ namespace MemoryEngine
             });
         }
 
+        #endregion
+
         private bool Is64BitProcess(Process proc)
         {
             if (!Environment.Is64BitOperatingSystem) return false;
@@ -374,11 +325,14 @@ namespace MemoryEngine
             {
                 _frozenValues.Clear();
             }
+
             if (ProcessHandle != IntPtr.Zero)
             {
                 MemoryAccess.CloseHandle(ProcessHandle);
                 ProcessHandle = IntPtr.Zero;
             }
+
+            _proc?.Dispose();
             GC.SuppressFinalize(this);
         }
     }
